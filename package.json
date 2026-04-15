@@ -1,0 +1,27 @@
+{
+  "name": "goodfile",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/status-bar": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "electron": "^40.8.0",
+    "electron-builder": "^26.8.1"
+  }
+}
