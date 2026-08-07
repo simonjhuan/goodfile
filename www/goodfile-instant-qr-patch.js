@@ -18,6 +18,20 @@
   var IP_CACHE_TTL   = 5 * 60 * 1000;
   var DEBUG_ON       = false;
 
+  /* The server rejects any request without the right ?t= token. We mint it here,
+     BEFORE painting the QR, and hand the same value to the native server — if the
+     QR is drawn first and the server picks its own token, every scan gets a 401. */
+  function gfMakeToken(){
+    try{
+      var b = new Uint8Array(4);
+      crypto.getRandomValues(b);
+      return Array.prototype.map.call(b, function(x){ return ('0'+x.toString(16)).slice(-2); }).join('');
+    }catch(e){
+      return (Math.random().toString(16).slice(2,10) + '0000000').slice(0,8);
+    }
+  }
+  function gfWithToken(url, tok){ return url + (url.indexOf('?')>-1 ? '&' : '?') + 't=' + tok; }
+
   /* ═══ STATE ═══ */
   var _cachedIP = null;
   var _cachedIPTime = 0;
@@ -161,10 +175,12 @@
   }
 
   /* ═══ QR BUILDER ═══ */
+  var _paintedQRURL = null;
   function buildInstantQR(url, file){
     var wrap = $('qr-wrap');
     if(!wrap){dlog('❌ qr-wrap not found', '#ff8888');return;}
     dlog('🎨 Building QR UI...');
+    _paintedQRURL = url;
     wrap.innerHTML = '';
     var qrFrame = document.createElement('div');
     qrFrame.className = 'qr-frame';
@@ -267,7 +283,9 @@
     if(window.showXbar) window.showXbar(file.name, fileEmoji(file.name), file.size);
     dlog('🌐 Get IP...');
     getLocalIPFast().then(function(ip){
-      var url = 'http://'+ip+':'+SERVER_PORT+'/download';
+      var tok = gfMakeToken();
+      var url = gfWithToken('http://'+ip+':'+SERVER_PORT+'/download', tok);
+      window._gfToken = tok;
       window._lastServerIP = ip;
       window._lastServerFile = file;
       dlog('🔗 URL: '+url);
@@ -324,7 +342,9 @@
     if(window.setProgress) window.setProgress('⚡ Direct...', 40);
     dlog('🌐 Get IP...');
     getLocalIPFast().then(function(ip){
-      var url = 'http://'+ip+':'+SERVER_PORT+'/download';
+      var tok = gfMakeToken();
+      var url = gfWithToken('http://'+ip+':'+SERVER_PORT+'/download', tok);
+      window._gfToken = tok;
       window._lastServerIP = ip;
       window._lastServerFile = meta;
       dlog('🔗 URL: '+url);
@@ -336,7 +356,7 @@
       updateQRStatus('🚀 server...', '41,121,255');
       window._lastSavedUri = f.uri;
       window._lastSavedDir = 'ORIGINAL';
-      plugin.startServer({uri:f.uri, fileName:meta.name, mimeType:meta.type||'application/octet-stream', port:SERVER_PORT, size:meta.size})
+      plugin.startServer({uri:f.uri, fileName:meta.name, mimeType:meta.type||'application/octet-stream', port:SERVER_PORT, size:meta.size, token:tok})
         .then(function(res){
           dlog('✅ Server ready (no copy)', '#00E676');
           finalizeServer(res.url||url, res.ip||ip, meta, 'ready');
@@ -366,7 +386,9 @@
     if(window.showXbar) window.showXbar(meta.name, '🖼️', total);
     if(window.setProgress) window.setProgress('⚡ Gallery...', 40);
     getLocalIPFast().then(function(ip){
-      var url = 'http://'+ip+':'+SERVER_PORT+'/';
+      var tok = gfMakeToken();
+      var url = gfWithToken('http://'+ip+':'+SERVER_PORT+'/', tok);
+      window._gfToken = tok;
       window._lastServerIP = ip; window._lastServerFile = meta;
       dlog('🔗 URL: '+url); dlog('🎨 Show QR NOW!', '#FFD700');
       buildInstantQR(url, meta);
@@ -375,7 +397,7 @@
       updateQRStatus('🚀 gallery...', '41,121,255');
       window._lastSavedDir = 'ORIGINAL';
       var payload = files.map(function(f){ return {uri:f.uri, name:f.name, mimeType:f.mimeType, size:f.size}; });
-      plugin.startGalleryServer({files:payload, port:SERVER_PORT})
+      plugin.startGalleryServer({files:payload, port:SERVER_PORT, token:tok})
         .then(function(res){
           dlog('✅ Gallery server ready', '#00E676');
           finalizeServer(res.url||url, res.ip||ip, meta, 'ready');
@@ -564,7 +586,7 @@
     updateQRStatus('🚀 server...', '41,121,255');
     window._lastSavedUri = uri;
     window._lastSavedDir = dir;
-    plugin.startServer({uri:uri, fileName:file.name, mimeType:file.type||'application/octet-stream', port:SERVER_PORT})
+    plugin.startServer({uri:uri, fileName:file.name, mimeType:file.type||'application/octet-stream', port:SERVER_PORT, token:window._gfToken||''})
       .then(function(res){
         dlog('✅ Server: '+(res.url||fallbackURL));
         finalizeServer(res.url||fallbackURL, res.ip||fallbackIP, file, 'ready');
@@ -581,6 +603,13 @@
     window.srvURL = url;
     var srv = $('srv'); if(srv) srv.style.display = 'block';
     var su = $('srv-url'); if(su) su.textContent = url;
+    // The QR on screen was painted from the pre-flight URL. If the server came
+    // back with a different one (different token or IP), the visible QR is now
+    // wrong and every scan would 401 -- repaint it from the authoritative URL.
+    if(url !== _paintedQRURL){
+      dlog('♻️ QR repaint (server URL differs)', '#ffaa44');
+      buildInstantQR(url, file);
+    }
     if(window.setProgress) window.setProgress('✅ Running', 100);
     if(window.setBadge) window.setBadge(ip?'📡 '+ip:'Live', true);
     updateQRStatus(mode==='preview' ? '🔍 Preview' : '✅ พร้อม download', mode==='preview' ? '120,120,255' : '0,230,118');
@@ -589,7 +618,10 @@
     if(window.toast) window.toast('✅ Server: '+(ip||''));
     setTimeout(function(){if(window.showSuccess) window.showSuccess(file.name, fmtSize(file.size));}, 300);
     var port = parseInt((url.match(/:(\d+)/)||[0,SERVER_PORT])[1]);
-    if(window.nsdRegister) window.nsdRegister(port, file.name);
+    // mDNS advertises a download URL too; without the token the devices it finds
+    // hit the same 401 the QR path used to.
+    var tok = (url.match(/[?&]t=([^&]+)/) || [])[1] || window._gfToken || '';
+    if(window.nsdRegister) window.nsdRegister(port, file.name, tok);
     if(window.linkShow) setTimeout(window.linkShow, 500);
     _serverReady = true;
   }

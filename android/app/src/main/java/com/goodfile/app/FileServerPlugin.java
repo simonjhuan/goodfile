@@ -154,7 +154,9 @@ public class FileServerPlugin extends Plugin {
         fileName = name;
         fileSize = (szD == null) ? -1L : szD.longValue();
         mimeType = mime == null || mime.isEmpty() ? guessMime(name) : mime;
-        token = genToken();
+        // The caller may hand us the token it already baked into the QR it painted.
+        // Generating our own here would invalidate that QR and every scan would 401.
+        token = callerToken(call);
         final String tok = token;
         pool.execute(() -> {
             try {
@@ -194,7 +196,7 @@ public class FileServerPlugin extends Plugin {
         stopSendServer();
         gallery = files;
         fileUri = null;
-        token = genToken();
+        token = callerToken(call);
         final String tok = token;
         pool.execute(() -> {
             try {
@@ -646,6 +648,14 @@ public class FileServerPlugin extends Plugin {
         token = null;
         try { if (sendServer != null) sendServer.close(); } catch (Exception ignored) {}
         sendServer = null;
+    }
+
+    // Use the token the JS side already published in the QR/mDNS record when it
+    // supplies one; only mint a fresh one when it doesn't.
+    private String callerToken(PluginCall call) {
+        String t = call.getString("token", "");
+        if (t != null) t = t.trim();
+        return (t == null || t.isEmpty()) ? genToken() : t;
     }
 
     private String genToken() {
