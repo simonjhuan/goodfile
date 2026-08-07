@@ -3,9 +3,11 @@
   "version": "3.0.0",
   "description": "GoodFile — Fast local file transfer. No cloud. No limits.",
   "author": "GoodFile",
-  "main": "main.js",
+  "main": "desktop/main.js",
   "scripts": {
-    "start": "electron .",
+    "test": "node test/qr-token-contract.test.js && node test/assets-in-sync.test.js",
+    "sync": "node scripts/sync-web-assets.js",
+    "start": "electron desktop",
     "build:win": "electron-builder --win --x64"
   },
   "devDependencies": {
@@ -20,9 +22,7 @@
       "output": "dist"
     },
     "files": [
-      "main.js",
-      "preload.js",
-      "app/**/*"
+      "desktop/**/*"
     ],
     "win": {
       "target": [
