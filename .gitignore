@@ -1,4 +1,25 @@
-﻿node_modules/
+# Dependencies
+node_modules/
+
+# Build output
 dist/
+build/
+
+# IDE
 .idea/
+*.iml
 *.log
+
+# Signing secrets — NEVER commit these
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+keystone
+
+# Local test media (large, not source)
+*.mp4
+
+# Manual backups (superseded by git history)
+backup/

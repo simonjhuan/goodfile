@@ -1,59 +1,63 @@
 {
   "name": "goodfile",
-  "version": "1.0.0",
-  "description": "",
+  "version": "3.0.0",
+  "description": "GoodFile — Fast local file transfer. No cloud. No limits.",
+  "author": "GoodFile",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "@capacitor/android": "^8.1.0",
-    "@capacitor/cli": "^8.1.0",
-    "@capacitor/core": "^8.1.0",
-    "@capacitor/filesystem": "^8.1.2",
-    "@capacitor/status-bar": "^8.0.1"
+    "build:win": "electron-builder --win --x64"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "electron": "^40.8.0",
-    "electron-builder": "^24.13.3"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
   },
   "build": {
-    "appId": "com.simonjjuan.goodfile",
-    "productName": "goodfile",
+    "appId": "com.goodfile.app",
+    "productName": "GoodFile",
+    "copyright": "Copyright © 2026 GoodFile",
     "directories": {
       "output": "dist"
     },
     "files": [
-      "**/*",
-      "!dist/**",
-      "!node_modules/.cache/**",
-      "!.github/**"
+      "main.js",
+      "preload.js",
+      "app/**/*"
     ],
     "win": {
       "target": [
-        "zip"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "category": "public.app-category.utilities"
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ]
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GoodFile"
     }
+  },
+  "dependencies": {
+    "@byteowls/capacitor-filesharer": "^7.0.0",
+    "@capacitor-community/admob": "^8.0.0",
+    "@capacitor-community/file-opener": "^8.0.0",
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/camera": "^8.2.0",
+    "@capacitor/clipboard": "^8.0.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/share": "^8.0.1"
   }
 }

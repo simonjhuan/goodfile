@@ -1,0 +1,61 @@
+<!-- ===========================================================================
+     GoodFile — Cloud tab screen markup (disabled / kept for later)
+     To re-enable: paste this block into www/index.html immediately BEFORE the
+     "<!-- RECEIVE -->" screen. See supabase/README.md → "Re-enable later".
+     =========================================================================== -->
+    <!-- CLOUD -->
+    <div class="screen" id="s-cloud">
+      <div class="send-hero">
+        <div class="send-ring" id="cloud-send-ring">
+          <div class="send-core">
+            <div class="send-core-emoji">☁️</div>
+            <div class="send-core-lbl">tap to upload</div>
+          </div>
+        </div>
+        <input type="file" id="cloud-in-file" style="display:none" accept="*/*">
+        <div class="send-hint">อัปโหลดขึ้นคลาวด์ · แชร์ลิงก์ · ลบเองใน 20 นาที</div>
+
+        <div class="samsung-warn" id="cloud-cfg-warn" style="display:none;background:rgba(255,179,0,.12);border-color:rgba(255,179,0,.4);color:#ffb300">
+          ⚙️ ยังไม่ได้ตั้งค่า Supabase — เปิดไฟล์ <strong>supabase-share.js</strong> ใส่ Project URL กับ anon key ก่อนใช้งาน (ดูวิธีใน supabase/README.md)
+        </div>
+
+        <div class="prog-card" id="cloud-prog" style="display:none">
+          <div class="prog-inner">
+            <div class="prog-top"><span class="prog-ic" id="cloud-prog-ic">📄</span><div style="flex:1;min-width:0"><div class="prog-fn" id="cloud-prog-name">—</div><div class="prog-fs" id="cloud-prog-size">—</div></div></div>
+            <div class="prog-track"><div class="prog-fill" id="cloud-prog-fill"></div></div>
+            <div class="prog-foot"><span class="prog-stat" id="cloud-prog-lbl">กำลังอัปโหลด...</span><span class="prog-spd" id="cloud-prog-pct">0%</span></div>
+          </div>
+        </div>
+
+        <div class="err-box" id="cloud-err"></div>
+
+        <div class="link-card" id="cloud-result" style="display:none">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">☁️ ลิงก์คลาวด์</span>
+              <span class="tag tag-green" id="cloud-expire-chip">⏱ 20:00</span>
+            </div>
+            <div class="card-body">
+              <div id="cloud-qr-wrap" style="display:flex;justify-content:center"><div id="cloud-qr"></div></div>
+              <div class="link-url-box" id="cloud-url-box" onclick="cloudCopyURL()">แตะเพื่อคัดลอกลิงก์</div>
+              <div class="link-meta">
+                <span class="tag tag-green" id="cloud-file-chip">📄 file</span>
+                <span class="tag tag-muted" id="cloud-size-chip">—</span>
+              </div>
+              <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+                <button class="btn btn-green btn-sm" onclick="cloudShare()" type="button">↑ แชร์ลิงก์</button>
+                <button class="btn btn-ghost btn-sm" onclick="cloudCopyURL()" type="button">📋 คัดลอก</button>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="cloudReset()" type="button">＋ อัปโหลดไฟล์ใหม่</button>
+              <div style="font-size:11px;color:var(--t4);text-align:center;line-height:1.6">ไฟล์จะถูกลบอัตโนมัติใน 20 นาทีเพื่อคืนพื้นที่ — ฝั่งรับเปิดลิงก์ในเบราว์เซอร์ได้เลย ไม่ต้องลงแอป</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="trust-row">
+          <div class="trust-chip">☁️ ผ่านคลาวด์</div>
+          <div class="trust-chip">⏱ ลบใน 20 นาที</div>
+          <div class="trust-chip">🔗 เปิดในเบราว์เซอร์</div>
+        </div>
+      </div>
+    </div>
