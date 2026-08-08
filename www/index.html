@@ -412,9 +412,6 @@
 
     <!-- SEND -->
     <div class="screen on" id="s-send">
-      <div class="samsung-warn" id="ios-tip" style="background:rgba(41,121,255,.1);border-color:rgba(41,121,255,.35);color:#82b1ff">
-        📱 <strong>iPhone / iPad:</strong> เลือกไฟล์แล้วแอปจะพาไปที่ <strong>Direct tab</strong> อัตโนมัติ — ให้ฝั่งรับสแกน QR หรือ scan QR จากฝั่งส่งแล้วกด Download ใน Safari
-      </div>
 
       <!-- Home: one obvious action. Text is authored in Thai because i18n
            translates TH -> EN at runtime; English is the default users see. -->
@@ -2274,7 +2271,6 @@ function startNative(file){
     try{var saved=localStorage.getItem('theme');if(saved==='light')document.body.classList.remove('dark');else applyTheme(saved||'dark');}catch(e){applyTheme('dark');}
     var ld=$('loading');if(ld)ld.style.display='none';
     var app=$('app');if(app)app.style.display='flex';
-    if(_isIOS){var it=$('ios-tip');if(it)it.classList.add('on');}
     diagNet();
     window.addEventListener('offline',function(){toast('\u26A0\uFE0F \u0E40\u0E04\u0E23\u0E37\u0E2D\u0E02\u0E48\u0E32\u0E22\u0E2B\u0E25\u0E38\u0E14 \u2014 WiFi \u0E15\u0E31\u0E14\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D');onNetworkChanged();});
     window.addEventListener('online',function(){toast('\u2705 \u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E2D\u0E2D\u0E19\u0E44\u0E25\u0E19\u0E4C\u0E41\u0E25\u0E49\u0E27');onNetworkChanged();});
