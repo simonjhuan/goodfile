@@ -216,6 +216,7 @@
     /* .hdr-logo span was green for the old wordmark; the new one is Good(white)File(green). */
     .hdr-logo span{color:var(--t1)}
     .hdr-logo .logo-file{color:var(--green)}
+    .hdr-logo .logo-fade{opacity:.35}
     /* Header is the wordmark and one control; state lives on the transfer screens. */
     #status-badge{display:none}
     .gear-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--card-bd);background:transparent;color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
@@ -228,15 +229,10 @@
     .choose-ic{width:74px;height:64px}
     .choose-t{font-size:23px;font-weight:750;letter-spacing:-.4px;color:var(--t1)}
     .choose-s{font-size:13px;color:var(--t3)}
-    .wide-ghost{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:12px;padding:16px;border-radius:16px;border:1px solid var(--card-bd);background:transparent;color:var(--t1);font-family:inherit;font-size:16px;font-weight:650;cursor:pointer}
-    .wide-ghost svg{width:21px;height:21px;color:var(--t3)}
-    .sec-lbl{font-size:13px;font-weight:600;color:var(--t3);margin:22px 0 10px}
-    .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-    .mode-card{display:flex;align-items:center;justify-content:center;gap:9px;padding:17px 10px;border-radius:15px;border:1px solid var(--card-bd);background:transparent;color:var(--t1);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
-    .mode-card svg{width:22px;height:22px;color:var(--t2);flex-shrink:0}
-    .mode-card:active{border-color:var(--green)}
+    .text-link{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;padding:6px;border-radius:10px;border:none;background:transparent;color:var(--t3);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+    .text-link svg{width:14px;height:14px;color:var(--t3)}
     .trust{display:flex;gap:7px;justify-content:center;margin-top:20px}
-    .trust-pill{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border-radius:100px;border:1px solid rgba(0,230,118,.4);color:var(--t2);font-size:12.5px;font-weight:600;white-space:nowrap}
+    .trust-pill{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border-radius:100px;border:1px solid rgba(0,230,118,.4);background:rgba(0,230,118,.1);color:var(--green);font-size:12.5px;font-weight:600;white-space:nowrap}
     .trust-pill svg{width:15px;height:15px;color:var(--green);flex-shrink:0}
     @media(max-width:360px){.trust-pill{padding:8px 10px;font-size:11.5px;gap:5px}}
     /* ===== Settings sheet ===== */
@@ -251,11 +247,6 @@
     /* .btn is width:100% by default, which squeezed the label to one word per line. */
     .set-row .btn{width:auto;flex-shrink:0;padding:9px 16px;white-space:nowrap}
     .sheet .card,.sheet .hs-card{margin-top:10px}
-    /* Send / QR / Direct all read as "a way to send" and nobody could tell them
-       apart. QR and Direct are steps inside sending, not places -- QR surfaces
-       itself once a transfer is live, Direct lives under the More section. */
-    #n-qr,#n-p2p{display:none}
-    #n-qr.avail{display:flex}
     .set-row{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-top:10px;border-radius:var(--r);border:1px solid var(--card-bd);background:var(--bg2)}
     .set-txt{flex:1;min-width:0}
     .set-nm{font-size:13.5px;font-weight:600;color:var(--t1)}
@@ -405,7 +396,7 @@
   </div>
 
   <div class="hdr">
-    <div class="hdr-logo"><span>Good</span><span class="logo-file">File</span></div>
+    <div class="hdr-logo"><span>Go</span><span class="logo-fade">o</span><span>d</span><span class="logo-file">File</span></div>
     <div class="hdr-right">
       <!-- Status stays in the DOM for setBadge(), but the header is down to one
            control; transfer state is shown where it matters, on the QR screen. -->
@@ -445,26 +436,14 @@
         <input type="file" id="in-file" style="display:none" multiple accept="*/*">
         <input type="file" id="in-folder" style="display:none" webkitdirectory>
 
-        <button class="wide-ghost" id="btn-share-text" type="button">
+        <button class="text-link" id="btn-share-text" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 01-8 8H7l-4 3v-4.5A8 8 0 1120 12z"/><path d="M8 10h8M8 14h5"/></svg>
-          <span>ส่งข้อความ</span>
+          <span>หรือส่งข้อความแทน</span>
         </button>
 
         <div class="paste-wrap" id="paste-wrap">
           <textarea id="paste-ta" placeholder="Paste or type text..."></textarea>
           <button class="btn btn-green btn-sm" id="btn-send-text" type="button">Send as .txt</button>
-        </div>
-
-        <div class="sec-lbl">ส่งด้วยวิธี</div>
-        <div class="mode-grid">
-          <button class="mode-card" id="mode-qr" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/><path d="M14 14h3v3h-3zM19 19h2v2h-2zM14 19h2v2h-2zM19 14h2v2h-2z" fill="currentColor" stroke="none"/></svg>
-            <span>คิวอาร์โค้ด</span>
-          </button>
-          <button class="mode-card" id="mode-nearby" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M8.2 15.8a5.4 5.4 0 010-7.6M15.8 8.2a5.4 5.4 0 010 7.6"/><path d="M5.4 18.6a9.4 9.4 0 010-13.2M18.6 5.4a9.4 9.4 0 010 13.2"/></svg>
-            <span>เครื่องใกล้เคียง</span>
-          </button>
         </div>
 
         <div class="trust">
@@ -836,9 +815,7 @@
 
   <div class="nav">
     <div class="nav-bar">
-      <button class="nav-item on green-tab" id="n-send" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5L12 4l8.5 6.5V19a1.5 1.5 0 01-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 013.5 19v-8.5z"/></svg></span><span class="nav-lbl">หน้าหลัก</span></button>
-      <button class="nav-item" id="n-qr" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/><path d="M14 14h3v3h-3z" fill="currentColor" stroke="none"/></svg></span><span class="nav-lbl">QR</span></button>
-      <button class="nav-item" id="n-p2p" type="button"><span class="nav-ic">⚡</span><span class="nav-lbl">Direct</span></button>
+      <button class="nav-item on green-tab" id="n-send" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5L12 4l8.5 6.5V19a1.5 1.5 0 01-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 013.5 19v-8.5z"/></svg></span><span class="nav-lbl">ส่ง</span></button>
       <button class="nav-item" id="n-recv" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg></span><span class="nav-lbl">รับไฟล์</span></button>
       <button class="nav-item" id="n-hist" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><span class="nav-lbl">กิจกรรม</span></button>
     </div>
@@ -1232,7 +1209,10 @@
   function applyTheme(mode){var dark=(mode==='dark');if(dark)document.body.classList.add('dark');else document.body.classList.remove('dark');$('theme-btn').textContent=dark?'☀️':'🌙';}
   function toggleTheme(){var dark=!document.body.classList.contains('dark');applyTheme(dark?'dark':'light');try{localStorage.setItem('theme',dark?'dark':'light');}catch(e){}}
   var tabs=['send','qr','p2p','recv','hist'];
-  function go(tab){tabs.forEach(function(t){var s=$('s-'+t),n=$('n-'+t);if(s)s.classList.toggle('on',t===tab);if(n)n.classList.toggle('on',t===tab);});if(tab!=='recv'){stopScan();nsdStopDiscovery();}if(tab==='recv'){recvBuildQR();}if(tab!=='p2p')stopP2pScan();
+  // 'qr' and 'p2p' are sub-screens of the Send flow now that the bottom nav
+  // only has 3 tabs -- they highlight n-send rather than a nav item of their own.
+  var navTabOf={send:'send',qr:'send',p2p:'send',recv:'recv',hist:'hist'};
+  function go(tab){var navTab=navTabOf[tab]||tab;tabs.forEach(function(t){var s=$('s-'+t);if(s)s.classList.toggle('on',t===tab);});['send','recv','hist'].forEach(function(t){var n=$('n-'+t);if(n)n.classList.toggle('on',t===navTab);});if(tab!=='recv'){stopScan();nsdStopDiscovery();}if(tab==='recv'){recvBuildQR();}if(tab!=='p2p')stopP2pScan();
     // On the QR screen, look for devices ready to receive so the file can be
     // pushed with one tap instead of scanned.
     if(tab==='qr'&&srvURL)nearbyStartForSend();else if(tab!=='qr')nearbyStop();
@@ -2176,20 +2156,6 @@ function startNative(file){
       var on=w.classList.toggle('on');
       if(on){var ta=$('paste-ta');if(ta)ta.focus();}
     });
-    // "Send with" are hints about how the transfer will be handed over; both
-    // need a file first, so they open the picker rather than a dead screen.
-    on('mode-qr','click',function(){
-      if(srvURL){go('qr');return;}
-      try{localStorage.setItem('_gf_mode','qr');}catch(e){}
-      if(window.gfNativePick&&window.gfNativePick())return;
-      $('in-file').click();
-    });
-    on('mode-nearby','click',function(){
-      if(srvURL){go('qr');nearbyStartForSend();return;}
-      try{localStorage.setItem('_gf_mode','nearby');}catch(e){}
-      if(window.gfNativePick&&window.gfNativePick())return;
-      $('in-file').click();
-    });
     on('btn-open-p2p','click',function(){sheet(false);go('p2p');});
     (function(){
       var box=$('set-matrix');if(!box)return;
@@ -2200,9 +2166,7 @@ function startNative(file){
       });
     })();
     on('n-send','click',function(){go('send');});
-    on('n-qr','click',function(){go('qr');});
     on('conn-retry','click',connPreflight);
-    on('n-p2p','click',function(){go('p2p');});
     on('n-recv','click',function(){go('recv');});
     on('n-hist','click',function(){go('hist');histRender();});
     on('hero-send-ring','click',function(){if(window.gfNativePick&&window.gfNativePick())return;$('in-file').click();});
