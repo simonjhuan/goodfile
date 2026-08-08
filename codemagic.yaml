@@ -19,8 +19,6 @@ workflows:
         script: npm ci
       - name: Capacitor sync iOS
         script: npx cap sync ios
-      - name: Set up code signing
-        script: xcode-project use-profiles
       - name: Increment build number
         script: |
           cd $(dirname "$XCODE_PROJECT")
