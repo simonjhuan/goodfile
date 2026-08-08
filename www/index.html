@@ -212,11 +212,45 @@
     .nb-inf{font-size:11px;color:var(--t3);margin-top:1px}
     .nb-go{flex-shrink:0;font-size:12px;font-weight:700;color:var(--green)}
     .nb-star{font-size:10px;color:var(--t3)}
-    .more-toggle{width:100%;margin-top:10px;background:transparent;border:1px solid var(--card-bd);border-radius:var(--r);color:var(--t2);font-family:inherit;font-size:13px;font-weight:600;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
-    .more-caret{transition:transform .2s}
-    .more-toggle.open .more-caret{transform:rotate(180deg)}
-    .more-wrap{display:none}
-    .more-wrap.on{display:block}
+    /* ===== Home ===== */
+    /* .hdr-logo span was green for the old wordmark; the new one is Good(white)File(green). */
+    .hdr-logo span{color:var(--t1)}
+    .hdr-logo .logo-file{color:var(--green)}
+    /* Header is the wordmark and one control; state lives on the transfer screens. */
+    #status-badge{display:none}
+    .gear-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--card-bd);background:transparent;color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+    .gear-btn svg{width:20px;height:20px}
+    .home-head{padding:6px 0 18px}
+    .home-h1{font-size:31px;line-height:1.15;font-weight:800;letter-spacing:-.8px;color:var(--t1)}
+    .home-sub{font-size:14.5px;color:var(--t3);margin-top:7px}
+    .choose-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;width:100%;padding:34px 20px;border-radius:20px;border:1.5px solid var(--green);background:rgba(0,230,118,.05);box-shadow:0 0 28px rgba(0,230,118,.16);color:var(--green);font-family:inherit;cursor:pointer;transition:transform .12s}
+    .choose-card:active{transform:scale(.99)}
+    .choose-ic{width:74px;height:64px}
+    .choose-t{font-size:23px;font-weight:750;letter-spacing:-.4px;color:var(--t1)}
+    .choose-s{font-size:13px;color:var(--t3)}
+    .wide-ghost{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:12px;padding:16px;border-radius:16px;border:1px solid var(--card-bd);background:transparent;color:var(--t1);font-family:inherit;font-size:16px;font-weight:650;cursor:pointer}
+    .wide-ghost svg{width:21px;height:21px;color:var(--t3)}
+    .sec-lbl{font-size:13px;font-weight:600;color:var(--t3);margin:22px 0 10px}
+    .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+    .mode-card{display:flex;align-items:center;justify-content:center;gap:9px;padding:17px 10px;border-radius:15px;border:1px solid var(--card-bd);background:transparent;color:var(--t1);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+    .mode-card svg{width:22px;height:22px;color:var(--t2);flex-shrink:0}
+    .mode-card:active{border-color:var(--green)}
+    .trust{display:flex;gap:7px;justify-content:center;margin-top:20px}
+    .trust-pill{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border-radius:100px;border:1px solid rgba(0,230,118,.4);color:var(--t2);font-size:12.5px;font-weight:600;white-space:nowrap}
+    .trust-pill svg{width:15px;height:15px;color:var(--green);flex-shrink:0}
+    @media(max-width:360px){.trust-pill{padding:8px 10px;font-size:11.5px;gap:5px}}
+    /* ===== Settings sheet ===== */
+    .sheet-back{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s}
+    .sheet-back.on{opacity:1;pointer-events:auto}
+    .sheet{position:fixed;left:0;right:0;bottom:0;z-index:801;max-height:86vh;overflow-y:auto;background:var(--bg2);border-top-left-radius:22px;border-top-right-radius:22px;border-top:1px solid var(--card-bd);transform:translateY(100%);transition:transform .25s cubic-bezier(.3,.9,.3,1);padding:0 16px calc(env(safe-area-inset-bottom) + 20px)}
+    .sheet.on{transform:translateY(0)}
+    .sheet-grip{width:38px;height:4px;border-radius:2px;background:var(--card-bd);margin:10px auto 4px}
+    .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:6px 0 10px}
+    .sheet-ttl{font-size:18px;font-weight:750;color:var(--t1)}
+    .sheet-x{background:transparent;border:0;color:var(--t3);font-size:17px;cursor:pointer;padding:6px}
+    /* .btn is width:100% by default, which squeezed the label to one word per line. */
+    .set-row .btn{width:auto;flex-shrink:0;padding:9px 16px;white-space:nowrap}
+    .sheet .card,.sheet .hs-card{margin-top:10px}
     /* Send / QR / Direct all read as "a way to send" and nobody could tell them
        apart. QR and Direct are steps inside sending, not places -- QR surfaces
        itself once a transfer is live, Direct lives under the More section. */
@@ -371,10 +405,15 @@
   </div>
 
   <div class="hdr">
-    <div class="hdr-logo"><span>g<span class="logo-o">o</span>od</span>file</div>
+    <div class="hdr-logo"><span>Good</span><span class="logo-file">File</span></div>
     <div class="hdr-right">
+      <!-- Status stays in the DOM for setBadge(), but the header is down to one
+           control; transfer state is shown where it matters, on the QR screen. -->
       <div class="status-pill" id="status-badge"><div class="sp-dot"></div><span>Ready</span></div>
-      <button class="icon-btn" id="theme-btn" type="button">☀️</button>
+      <button class="gear-btn" id="btn-settings" type="button" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+      <button class="icon-btn" id="theme-btn" type="button" style="display:none">☀️</button>
     </div>
   </div>
 
@@ -386,22 +425,52 @@
         📱 <strong>iPhone / iPad:</strong> เลือกไฟล์แล้วแอปจะพาไปที่ <strong>Direct tab</strong> อัตโนมัติ — ให้ฝั่งรับสแกน QR หรือ scan QR จากฝั่งส่งแล้วกด Download ใน Safari
       </div>
 
+      <!-- Home: one obvious action. Text is authored in Thai because i18n
+           translates TH -> EN at runtime; English is the default users see. -->
+      <div class="home-head">
+        <div class="home-h1">ส่งไฟล์ ง่ายๆ</div>
+        <div class="home-sub">เร็ว เป็นส่วนตัว ส่งตรงระหว่างเครื่อง</div>
+      </div>
+
       <div class="send-hero">
-        <div class="send-ring" id="hero-send-ring">
-          <div class="send-core">
-            <div class="send-core-emoji">🚀</div>
-            <div class="send-core-lbl">tap to send</div>
-          </div>
-        </div>
+        <button class="choose-card" id="hero-send-ring" type="button">
+          <svg class="choose-ic" viewBox="0 0 64 56" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14a4 4 0 014-4h14l6 7h24a4 4 0 014 4v27a4 4 0 01-4 4H8a4 4 0 01-4-4V14z"/>
+            <circle cx="34" cy="36" r="12" fill="var(--bg)"/>
+            <path d="M34 42V30M28.5 35.5L34 30l5.5 5.5"/>
+          </svg>
+          <div class="choose-t">เลือกไฟล์</div>
+          <div class="choose-s">รูป วิดีโอ เอกสาร โฟลเดอร์</div>
+        </button>
         <input type="file" id="in-file" style="display:none" multiple accept="*/*">
-        <div class="send-hint">Select files · text · folder</div>
-        <div class="type-grid">
-          <label class="tcard" for="in-folder" style="grid-column:1/-1;flex-direction:row;justify-content:center;gap:10px;padding:13px"><div class="tcard-ic" style="width:auto;height:auto;background:none;border:0;font-size:18px">📁</div><div class="tcard-lbl" style="font-size:13px">ส่งทั้งโฟลเดอร์ (zip)</div></label>
-          <input type="file" id="in-folder" style="display:none" webkitdirectory>
-        </div>
+        <input type="file" id="in-folder" style="display:none" webkitdirectory>
+
+        <button class="wide-ghost" id="btn-share-text" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 01-8 8H7l-4 3v-4.5A8 8 0 1120 12z"/><path d="M8 10h8M8 14h5"/></svg>
+          <span>ส่งข้อความ</span>
+        </button>
+
         <div class="paste-wrap" id="paste-wrap">
           <textarea id="paste-ta" placeholder="Paste or type text..."></textarea>
           <button class="btn btn-green btn-sm" id="btn-send-text" type="button">Send as .txt</button>
+        </div>
+
+        <div class="sec-lbl">ส่งด้วยวิธี</div>
+        <div class="mode-grid">
+          <button class="mode-card" id="mode-qr" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/><path d="M14 14h3v3h-3zM19 19h2v2h-2zM14 19h2v2h-2zM19 14h2v2h-2z" fill="currentColor" stroke="none"/></svg>
+            <span>คิวอาร์โค้ด</span>
+          </button>
+          <button class="mode-card" id="mode-nearby" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M8.2 15.8a5.4 5.4 0 010-7.6M15.8 8.2a5.4 5.4 0 010 7.6"/><path d="M5.4 18.6a9.4 9.4 0 010-13.2M18.6 5.4a9.4 9.4 0 010 13.2"/></svg>
+            <span>เครื่องใกล้เคียง</span>
+          </button>
+        </div>
+
+        <div class="trust">
+          <span class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 8.2-7 9-4-.8-7-4.6-7-9V6l7-3z"/></svg>ไม่ผ่านคลาวด์</span>
+          <span class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 12a3 3 0 11-3-3c1.6 0 2.6 1.2 3.6 2.3l2.8 3.4c1 1.1 2 2.3 3.6 2.3a3 3 0 100-6c-1.6 0-2.6 1.2-3.6 2.3L10.1 16c-1 1.1-2 2.3-3.6 2.3"/></svg>ไม่จำกัดขนาด</span>
+          <span class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.5 10.5V7.8a3.5 3.5 0 017 0v2.7"/></svg>ส่วนตัว</span>
         </div>
         <div class="flist" id="flist">
           <div class="flist-box">
@@ -436,62 +505,6 @@
         <!-- Hotspot and Clipboard are fallbacks and niche features. Giving them
              full-size cards on the first screen made the app look like it needed
              a networking decision before you could send anything. -->
-        <button class="more-toggle" id="more-toggle" type="button">
-          <span>เครื่องมือเพิ่มเติม</span><span class="more-caret" id="more-caret">▾</span>
-        </button>
-        <div class="more-wrap" id="more-wrap">
-        <div class="hs-card" id="hs-card">
-          <div class="card-head">
-            <div class="hs-status">
-              <div class="hs-dot" id="hs-dot"></div>
-              <span class="card-title">Hotspot</span>
-              <span class="tag tag-muted" id="hs-status-txt" style="margin-left:4px">Off</span>
-            </div>
-          </div>
-          <div class="card-body">
-            <div style="font-size:12px;color:var(--t3);line-height:1.55">Create WiFi from this device — no router needed</div>
-            <div class="hs-info" id="hs-info" style="display:none">
-              <div class="hs-row"><span class="hs-lbl">WiFi Name</span><span class="hs-val" id="hs-ssid">—</span></div>
-              <div class="hs-row"><span class="hs-lbl">Password</span><span class="hs-val" id="hs-pass">—</span></div>
-              <div class="hs-row"><span class="hs-lbl">IP</span><span class="hs-val" id="hs-ip">192.168.49.1</span></div>
-              <div class="hs-qr" id="hs-qr-wrap" style="display:none"><div id="hs-qr"></div></div>
-            </div>
-            <button class="btn btn-green" id="btn-hs-start" type="button">⚡ Start Hotspot</button>
-            <button class="btn btn-danger" id="btn-hs-stop" type="button" style="display:none">✕ Stop Hotspot</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-head">
-            <span class="card-title">📋 Clipboard Share</span>
-            <span class="tag tag-muted" id="clip-status">Empty</span>
-          </div>
-          <div class="card-body">
-            <div class="clip-preview empty" id="clip-preview">No text — paste to share clipboard</div>
-            <div class="clip-time" id="clip-time"></div>
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-ghost btn-sm" style="flex:1" id="btn-clip-paste" type="button">📋 Paste</button>
-              <button class="btn btn-purple btn-sm" style="flex:2" id="btn-clip-send" type="button" disabled>📤 Share</button>
-              <button class="btn btn-ghost btn-sm" id="btn-clip-clear" type="button">🗑</button>
-            </div>
-          </div>
-        </div>
-          <!-- The falling-katakana background, kept as a choice rather than the
-               default first impression. -->
-          <div class="set-row">
-            <div class="set-txt">
-              <div class="set-nm">🟩 ธีมแฮกเกอร์</div>
-              <div class="set-sub">พื้นหลังตัวอักษรตกแบบ Matrix (ปิดไว้เพื่อให้อ่านง่ายและประหยัดแบต)</div>
-            </div>
-            <label class="ar-sw"><input type="checkbox" id="set-matrix"><span class="ar-sl"></span></label>
-          </div>
-          <div class="set-row" id="set-direct-row">
-            <div class="set-txt">
-              <div class="set-nm">⚡ Direct (P2P)</div>
-              <div class="set-sub">ส่งตรงแบบไม่ผ่าน WiFi ร่วม สำหรับ iPhone หรือเมื่อไม่มีเราเตอร์</div>
-            </div>
-            <button class="btn btn-ghost btn-sm" id="btn-open-p2p" type="button">เปิด</button>
-          </div>
-        </div><!-- /more-wrap -->
         <div class="link-card" id="link-card">
           <div class="card">
             <div class="card-head">
@@ -533,11 +546,7 @@
             </div>
           </div>
         </div>
-        <div class="trust-row">
-          <div class="trust-chip">🔒 Local only</div>
-          <div class="trust-chip">👁 No cloud</div>
-          <div class="trust-chip">⚡ Direct</div>
-        </div>
+        <!-- superseded by the .trust pills above -->
       </div>
     </div>
 
@@ -827,16 +836,95 @@
 
   <div class="nav">
     <div class="nav-bar">
-      <button class="nav-item on green-tab" id="n-send" type="button"><span class="nav-ic">🚀</span><span class="nav-lbl">Send</span></button>
-      <button class="nav-item" id="n-qr" type="button"><span class="nav-ic">⊞</span><span class="nav-lbl">QR</span></button>
+      <button class="nav-item on green-tab" id="n-send" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5L12 4l8.5 6.5V19a1.5 1.5 0 01-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 013.5 19v-8.5z"/></svg></span><span class="nav-lbl">หน้าหลัก</span></button>
+      <button class="nav-item" id="n-qr" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/><path d="M14 14h3v3h-3z" fill="currentColor" stroke="none"/></svg></span><span class="nav-lbl">QR</span></button>
       <button class="nav-item" id="n-p2p" type="button"><span class="nav-ic">⚡</span><span class="nav-lbl">Direct</span></button>
-      <button class="nav-item" id="n-recv" type="button"><span class="nav-ic">↓</span><span class="nav-lbl">Receive</span></button>
-      <button class="nav-item" id="n-hist" type="button"><span class="nav-ic">🕐</span><span class="nav-lbl">History</span></button>
+      <button class="nav-item" id="n-recv" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg></span><span class="nav-lbl">รับไฟล์</span></button>
+      <button class="nav-item" id="n-hist" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><span class="nav-lbl">กิจกรรม</span></button>
     </div>
   </div>
 </div>
 
 <div class="toast-wrap" id="toast-wrap"></div>
+        <!-- Secondary tools moved off Home into a settings sheet: they are
+             fallbacks and preferences, not the thing you came here to do. -->
+        <div class="sheet-back" id="settings-back"></div>
+        <div class="sheet" id="settings-sheet">
+          <div class="sheet-grip"></div>
+          <div class="sheet-head">
+            <span class="sheet-ttl">ตั้งค่า</span>
+            <button class="sheet-x" id="settings-close" type="button">✕</button>
+          </div>
+          <div class="sheet-body">
+            <div class="set-row">
+              <div class="set-txt"><div class="set-nm">ภาษา</div><div class="set-sub">English / ไทย</div></div>
+              <span id="lang-slot"></span>
+            </div>
+            <div class="set-row">
+              <div class="set-txt"><div class="set-nm">โหมดสว่าง</div><div class="set-sub">สลับพื้นหลังสว่าง/มืด</div></div>
+              <label class="ar-sw"><input type="checkbox" id="set-light"><span class="ar-sl"></span></label>
+            </div>
+            <div class="set-row">
+              <div class="set-txt"><div class="set-nm">ส่งทั้งโฟลเดอร์</div><div class="set-sub">รวมเป็นไฟล์ zip ก่อนส่ง</div></div>
+              <button class="btn btn-ghost btn-sm" id="btn-pick-folder" type="button">เลือก</button>
+            </div>
+            <div class="set-row">
+              <div class="set-txt"><div class="set-nm">รายงานปัญหา</div><div class="set-sub">ส่งบันทึกในเครื่องให้ผู้พัฒนา</div></div>
+              <button class="btn btn-ghost btn-sm" id="btn-report" type="button">ส่ง</button>
+            </div>
+        <div class="hs-card" id="hs-card">
+          <div class="card-head">
+            <div class="hs-status">
+              <div class="hs-dot" id="hs-dot"></div>
+              <span class="card-title">Hotspot</span>
+              <span class="tag tag-muted" id="hs-status-txt" style="margin-left:4px">Off</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="font-size:12px;color:var(--t3);line-height:1.55">Create WiFi from this device — no router needed</div>
+            <div class="hs-info" id="hs-info" style="display:none">
+              <div class="hs-row"><span class="hs-lbl">WiFi Name</span><span class="hs-val" id="hs-ssid">—</span></div>
+              <div class="hs-row"><span class="hs-lbl">Password</span><span class="hs-val" id="hs-pass">—</span></div>
+              <div class="hs-row"><span class="hs-lbl">IP</span><span class="hs-val" id="hs-ip">192.168.49.1</span></div>
+              <div class="hs-qr" id="hs-qr-wrap" style="display:none"><div id="hs-qr"></div></div>
+            </div>
+            <button class="btn btn-green" id="btn-hs-start" type="button">⚡ Start Hotspot</button>
+            <button class="btn btn-danger" id="btn-hs-stop" type="button" style="display:none">✕ Stop Hotspot</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">📋 Clipboard Share</span>
+            <span class="tag tag-muted" id="clip-status">Empty</span>
+          </div>
+          <div class="card-body">
+            <div class="clip-preview empty" id="clip-preview">No text — paste to share clipboard</div>
+            <div class="clip-time" id="clip-time"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" style="flex:1" id="btn-clip-paste" type="button">📋 Paste</button>
+              <button class="btn btn-purple btn-sm" style="flex:2" id="btn-clip-send" type="button" disabled>📤 Share</button>
+              <button class="btn btn-ghost btn-sm" id="btn-clip-clear" type="button">🗑</button>
+            </div>
+          </div>
+        </div>
+          <!-- The falling-katakana background, kept as a choice rather than the
+               default first impression. -->
+          <div class="set-row">
+            <div class="set-txt">
+              <div class="set-nm">🟩 ธีมแฮกเกอร์</div>
+              <div class="set-sub">พื้นหลังตัวอักษรตกแบบ Matrix (ปิดไว้เพื่อให้อ่านง่ายและประหยัดแบต)</div>
+            </div>
+            <label class="ar-sw"><input type="checkbox" id="set-matrix"><span class="ar-sl"></span></label>
+          </div>
+          <div class="set-row" id="set-direct-row">
+            <div class="set-txt">
+              <div class="set-nm">⚡ Direct (P2P)</div>
+              <div class="set-sub">ส่งตรงแบบไม่ผ่าน WiFi ร่วม สำหรับ iPhone หรือเมื่อไม่มีเราเตอร์</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-open-p2p" type="button">เปิด</button>
+          </div>
+          </div>
+        </div>
 <canvas id="confetti-canvas"></canvas>
 <div class="overlay" id="overlay"></div>
 <div class="popup" id="popup">
@@ -2053,12 +2141,56 @@ function startNative(file){
 
   function bindEvents(){
     on('theme-btn','click',toggleTheme);
-    on('more-toggle','click',function(){
-      var w=$('more-wrap'),t=$('more-toggle');
-      var open=w.classList.toggle('on');
-      t.classList.toggle('open',open);
+    function sheet(open){
+      var s=$('settings-sheet'),b=$('settings-back');
+      if(!s)return;
+      if(!open){s.classList.remove('on');if(b)b.classList.remove('on');return;}
+      // Read layout first so the browser has a "from" value to animate out of;
+      // without it the first open can sit stuck at translateY(100%), i.e. the
+      // sheet is "open" in the DOM but never comes up the screen.
+      void s.offsetHeight;
+      requestAnimationFrame(function(){
+        s.classList.add('on');
+        if(b)b.classList.add('on');
+      });
+    }
+    // i18n.js injects its own button into the header; the redesigned header has
+    // room for the gear only, so relocate it into Settings as soon as it exists.
+    (function moveLangBtn(tries){
+      tries=tries||0;
+      var slot=$('lang-slot'),lang=$('gf-lang-btn');
+      if(slot&&lang){slot.appendChild(lang);return;}
+      if(tries<40)setTimeout(function(){moveLangBtn(tries+1);},50);
+    })();
+    on('btn-settings','click',function(){
+      var lt=$('set-light');if(lt)lt.checked=!document.body.classList.contains('dark');
+      sheet(true);
     });
-    on('btn-open-p2p','click',function(){go('p2p');});
+    on('settings-close','click',function(){sheet(false);});
+    on('settings-back','click',function(){sheet(false);});
+    on('set-light','change',function(){applyTheme(this.checked?'light':'dark');try{localStorage.setItem('theme',this.checked?'light':'dark');}catch(e){}});
+    on('btn-pick-folder','click',function(){sheet(false);$('in-folder').click();});
+    on('btn-report','click',function(){gfShareDiagnostics();});
+    on('btn-share-text','click',function(){
+      var w=$('paste-wrap');if(!w)return;
+      var on=w.classList.toggle('on');
+      if(on){var ta=$('paste-ta');if(ta)ta.focus();}
+    });
+    // "Send with" are hints about how the transfer will be handed over; both
+    // need a file first, so they open the picker rather than a dead screen.
+    on('mode-qr','click',function(){
+      if(srvURL){go('qr');return;}
+      try{localStorage.setItem('_gf_mode','qr');}catch(e){}
+      if(window.gfNativePick&&window.gfNativePick())return;
+      $('in-file').click();
+    });
+    on('mode-nearby','click',function(){
+      if(srvURL){go('qr');nearbyStartForSend();return;}
+      try{localStorage.setItem('_gf_mode','nearby');}catch(e){}
+      if(window.gfNativePick&&window.gfNativePick())return;
+      $('in-file').click();
+    });
+    on('btn-open-p2p','click',function(){sheet(false);go('p2p');});
     (function(){
       var box=$('set-matrix');if(!box)return;
       box.checked=!!(window.matrixIsEnabled&&window.matrixIsEnabled());
