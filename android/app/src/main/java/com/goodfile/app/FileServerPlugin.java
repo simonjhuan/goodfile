@@ -325,8 +325,15 @@ public class FileServerPlugin extends Plugin {
             }
             // Everything that exposes file data requires the access token from the QR/link.
             if (!tokenOk(req.path)) {
-                byte[] body = "Unauthorized — open the QR link from the sender.".getBytes(StandardCharsets.UTF_8);
-                writeResponse(s.getOutputStream(), "401 Unauthorized", "text/plain; charset=utf-8", body, null);
+                // Someone scanned a QR/link that doesn't match this server -- almost
+                // always a stale QR. Tell the sender, who is the only one who can fix
+                // it; otherwise this failure is invisible to everyone but the receiver.
+                JSObject ev = new JSObject();
+                ev.put("path", base);
+                ev.put("hadToken", !queryParam(req.path, "t").isEmpty());
+                main.post(() -> notifyListeners("unauthorizedScan", ev));
+                byte[] body = unauthorizedPage().getBytes(StandardCharsets.UTF_8);
+                writeResponse(s.getOutputStream(), "401 Unauthorized", "text/html; charset=utf-8", body, "Cache-Control: no-store\r\n");
                 return;
             }
             if (gallery != null && base.equals("/f")) {
@@ -418,6 +425,41 @@ public class FileServerPlugin extends Plugin {
                 + "<div style='font-size:14px;font-weight:600;color:var(--label)'>" + title + "</div>"
                 + "<div style='font-size:12px;color:var(--label2);margin-top:1px'>" + sub + "</div></div>"
                 + "<div style='flex-shrink:0;background:var(--green);color:#fff;font-size:13px;font-weight:600;padding:8px 13px;border-radius:11px'>" + cta + "</div></a>";
+    }
+
+    /**
+     * A bare "Unauthorized" string told the receiver nothing and left them stuck.
+     * The cause is nearly always a QR from an earlier transfer, so say that, in
+     * both languages, and tell them exactly what to ask for.
+     */
+    private String unauthorizedPage() {
+        return "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+                + "<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>"
+                + "<meta name='theme-color' content='#F2F2F7' media='(prefers-color-scheme: light)'>"
+                + "<meta name='theme-color' content='#000000' media='(prefers-color-scheme: dark)'>"
+                + "<title>goodfile</title><style>"
+                + ":root{--bg:#F2F2F7;--card:#FFFFFF;--label:#1C1C1E;--label2:rgba(60,60,67,.6);--sep:rgba(60,60,67,.16);--orange:#FF9500}"
+                + "@media(prefers-color-scheme:dark){:root{--bg:#000;--card:#1C1C1E;--label:#FFF;--label2:rgba(235,235,245,.6);--sep:rgba(120,120,128,.32);--orange:#FF9F0A}}"
+                + "*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}"
+                + "body{background:var(--bg);color:var(--label);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center;padding:24px}"
+                + ".card{background:var(--card);border:1px solid var(--sep);border-radius:22px;padding:30px 24px;max-width:400px;width:100%;text-align:center}"
+                + ".ic{width:62px;height:62px;border-radius:18px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 18px}"
+                + "h1{font-size:19px;font-weight:650;letter-spacing:-.3px;margin-bottom:8px}"
+                + ".sub{font-size:14px;color:var(--label2);line-height:1.55}"
+                + ".en{font-size:13px;color:var(--label2);line-height:1.5;margin-top:14px;padding-top:14px;border-top:1px solid var(--sep)}"
+                + ".steps{text-align:left;font-size:13.5px;color:var(--label2);line-height:1.9;margin-top:16px;padding-top:16px;border-top:1px solid var(--sep)}"
+                + ".steps b{color:var(--label);font-weight:600}"
+                + "</style></head><body><div class='card'>"
+                + "<div class='ic'>⏳</div>"
+                + "<h1>ลิงก์นี้ใช้ไม่ได้แล้ว</h1>"
+                + "<div class='sub'>QR นี้เป็นของการส่งครั้งก่อน ฝั่งส่งได้เริ่มรายการใหม่ไปแล้ว</div>"
+                + "<div class='steps'>ทำอย่างไรต่อ:<br>"
+                + "<b>1.</b> ให้ฝั่งส่งเลือกไฟล์อีกครั้ง<br>"
+                + "<b>2.</b> สแกน QR อันใหม่ที่ขึ้นมา<br>"
+                + "<b>3.</b> อย่าใช้ QR ที่ถ่ายเก็บไว้ หรือแท็บเดิมที่ค้างอยู่</div>"
+                + "<div class='en'><b>This link has expired.</b><br>"
+                + "The QR you scanned belongs to an earlier transfer. Ask the sender to pick the file again and scan the new QR — a screenshotted or reloaded link won't work.</div>"
+                + "</div></body></html>";
     }
 
     private String uploadPage() {

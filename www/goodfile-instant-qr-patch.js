@@ -302,6 +302,7 @@
       }
     }).catch(function(e){
       dlog('❌ IP error: '+(e&&e.message||e), '#ff5555');
+      if(window.GFDiag) window.GFDiag.error('ip.resolve.failed', {err:(e&&e.message)||String(e)});
       if(window.showErr) window.showErr('IP failed');
     });
   };
@@ -359,14 +360,17 @@
       plugin.startServer({uri:f.uri, fileName:meta.name, mimeType:meta.type||'application/octet-stream', port:SERVER_PORT, size:meta.size, token:tok})
         .then(function(res){
           dlog('✅ Server ready (no copy)', '#00E676');
+          if(window.GFDiag) window.GFDiag.checkQRToken(res.url||url, res.token||tok);
           finalizeServer(res.url||url, res.ip||ip, meta, 'ready');
         })
         .catch(function(e){
           dlog('❌ Server err: '+(e&&e.message||e), '#ff5555');
+          if(window.GFDiag) window.GFDiag.error('server.start.failed', {mode:'direct', err:(e&&e.message)||String(e)});
           if(window.showErr) window.showErr('Server failed');
         });
     }).catch(function(e){
       dlog('❌ IP error: '+(e&&e.message||e), '#ff5555');
+      if(window.GFDiag) window.GFDiag.error('ip.resolve.failed', {err:(e&&e.message)||String(e)});
       if(window.showErr) window.showErr('IP failed');
     });
   }
@@ -400,14 +404,17 @@
       plugin.startGalleryServer({files:payload, port:SERVER_PORT, token:tok})
         .then(function(res){
           dlog('✅ Gallery server ready', '#00E676');
+          if(window.GFDiag) window.GFDiag.checkQRToken(res.url||url, res.token||tok);
           finalizeServer(res.url||url, res.ip||ip, meta, 'ready');
         })
         .catch(function(e){
           dlog('❌ Gallery err: '+(e&&e.message||e), '#ff5555');
+          if(window.GFDiag) window.GFDiag.error('server.start.failed', {mode:'gallery', err:(e&&e.message)||String(e)});
           if(window.showErr) window.showErr('Server failed');
         });
     }).catch(function(e){
       dlog('❌ IP error: '+(e&&e.message||e), '#ff5555');
+      if(window.GFDiag) window.GFDiag.error('ip.resolve.failed', {err:(e&&e.message)||String(e)});
       if(window.showErr) window.showErr('IP failed');
     });
   }
