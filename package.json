@@ -5,7 +5,7 @@
   "author": "GoodFile",
   "main": "desktop/main.js",
   "scripts": {
-    "test": "node test/qr-token-contract.test.js && node test/diagnostics.test.js && node test/assets-in-sync.test.js",
+    "test": "node test/qr-token-contract.test.js && node test/diagnostics.test.js && node test/i18n-coverage.test.js && node test/assets-in-sync.test.js",
     "sync": "node scripts/sync-web-assets.js",
     "start": "electron desktop",
     "build:win": "electron-builder --win --x64"

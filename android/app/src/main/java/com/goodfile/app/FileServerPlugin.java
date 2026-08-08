@@ -59,6 +59,8 @@ public class FileServerPlugin extends Plugin {
     private String mimeType;
     private long fileSize = -1;
     private JSArray gallery;   // multi-image gallery mode (null = single-file send)
+    private final java.util.Set<String> seenClients =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
     private volatile String token;  // access token for the active send/gallery server (null = open)
 
     @PluginMethod
@@ -310,6 +312,7 @@ public class FileServerPlugin extends Plugin {
         try (Socket s = socket) {
             s.setSoTimeout(30000);
             s.setSendBufferSize(256 * 1024);
+            noteClient(s);
             HttpRequest req = readRequest(s.getInputStream());
             String base = req.path;
             int qm = base.indexOf('?');
@@ -684,10 +687,31 @@ public class FileServerPlugin extends Plugin {
         out.flush();
     }
 
+    /**
+     * A request arriving from another device is the only proof that the two
+     * phones can actually reach each other. Pinging our own server from our own
+     * device proves nothing, so this is what the UI should trust.
+     */
+    private void noteClient(Socket s) {
+        try {
+            InetAddress addr = s.getInetAddress();
+            if (addr == null) return;
+            String ip = addr.getHostAddress();
+            if (ip == null || ip.isEmpty() || addr.isLoopbackAddress()) return;
+            if (!seenClients.add(ip)) return;   // one event per device, not per request
+            JSObject ev = new JSObject();
+            ev.put("ip", ip);
+            ev.put("count", seenClients.size());
+            main.post(() -> notifyListeners("clientConnected", ev));
+        } catch (Exception ignored) {
+        }
+    }
+
     private void stopSendServer() {
         sendRunning = false;
         gallery = null;
         token = null;
+        seenClients.clear();
         try { if (sendServer != null) sendServer.close(); } catch (Exception ignored) {}
         sendServer = null;
     }

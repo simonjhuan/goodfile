@@ -192,6 +192,15 @@
     .conn-status.good .conn-dot{background:var(--green);animation:blink 1.5s infinite}
     .conn-status.bad{border-color:rgba(255,68,68,.45);background:rgba(255,68,68,.08)}
     .conn-status.bad .conn-dot{background:#ff4444}
+    /* Server is up but no other device has reached us yet -- not success, not failure. */
+    .conn-status.wait{border-color:rgba(120,140,180,.4);background:rgba(120,140,180,.08)}
+    .conn-status.wait .conn-dot{background:#8fa3c8;animation:blink 1.6s infinite}
+    .conn-status.live{border-color:rgba(0,230,118,.55);background:rgba(0,230,118,.14)}
+    .conn-status.live .conn-dot{background:var(--green);box-shadow:0 0 0 4px rgba(0,230,118,.18)}
+    .conn-help{margin:8px 0 0;padding:12px 14px;border-radius:var(--r);border:1px solid rgba(255,193,7,.4);background:rgba(255,193,7,.07);font-size:12px;color:var(--t2);line-height:1.75;display:none}
+    .conn-help.on{display:block}
+    .conn-help .ch-t{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:6px}
+    .conn-help .ch-l{margin-top:3px}
     .wd-ip{font-size:11px;font-weight:700;color:var(--green)}
     .wd-steps{background:var(--card);border:1px solid var(--card-bd);border-radius:var(--r2);overflow:hidden}
     .wd-step{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--card-bd2)}.wd-step:last-child{border-bottom:none}
@@ -490,6 +499,16 @@
         <div class="conn-dot" id="conn-dot"></div>
         <div class="conn-txt"><div class="conn-title" id="conn-title">—</div><div class="conn-sub" id="conn-sub"></div></div>
         <button class="conn-retry" id="conn-retry" type="button">ทดสอบ</button>
+      </div>
+      <!-- One line per text node: the i18n walker translates whole phrases, so
+           inline tags mid-sentence would leave half-translated text. -->
+      <div class="conn-help" id="conn-help">
+        <div class="ch-t">⚠️ ยังไม่มีเครื่องไหนเชื่อมต่อเข้ามา</div>
+        <div class="ch-l">ถ้าอีกเครื่องสแกนแล้วหน้าเว็บค้าง แปลว่าสองเครื่องยังคุยกันไม่ได้</div>
+        <div class="ch-l">1. เช็คว่าทั้งสองเครื่องต่อ WiFi ชื่อเดียวกัน (2.4G กับ 5G ถือว่าคนละวง)</div>
+        <div class="ch-l">2. ปิดเน็ตมือถือของเครื่องที่ส่ง แล้วกดทดสอบใหม่</div>
+        <div class="ch-l">3. WiFi โรงแรม ร้านกาแฟ ออฟฟิศ มักบล็อกไม่ให้เครื่องคุยกัน</div>
+        <div class="ch-l">4. เปิด Hotspot จากเครื่องส่ง แล้วให้อีกเครื่องมาต่อ วิธีนี้ได้ผลเสมอ</div>
       </div>
       <div class="howto">
         <div class="howto-head">How to receive</div>
@@ -1320,7 +1339,11 @@ function startNative(file){
   function buildQR(url,file){var wrap=$('qr-wrap');wrap.innerHTML='';var qrFrame=document.createElement('div');qrFrame.className='qr-frame';var qrDiv=document.createElement('div');qrFrame.appendChild(qrDiv);wrap.appendChild(qrFrame);var fname=document.createElement('div');fname.className='qr-fn';fname.textContent=file?file.name:'File';wrap.appendChild(fname);var fsize=document.createElement('div');fsize.className='qr-fs';fsize.textContent=file?fmt(file.size):'';wrap.appendChild(fsize);var urlBox=document.createElement('div');urlBox.className='qr-url';urlBox.textContent=url;urlBox.addEventListener('click',function(){copyURL(url);});wrap.appendChild(urlBox);var shareBtn=document.createElement('button');shareBtn.className='qr-share-btn';shareBtn.type='button';shareBtn.textContent='Share Link';shareBtn.addEventListener('click',doShare);wrap.appendChild(shareBtn);qrDiv.innerHTML='<div style="width:240px;height:240px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#aaa">Loading QR...</div>';function makeQR(a){a=a||0;if(window.QRCode){qrDiv.innerHTML='';try{new QRCode(qrDiv,{text:url,width:240,height:240,colorDark:'#000000',colorLight:'#ffffff',correctLevel:0});}catch(e){qrDiv.textContent=url;}}else if(a<40){setTimeout(function(){makeQR(a+1);},50);}else{qrDiv.textContent=url;}}makeQR();}
   function copyURL(url){var u=url||srvURL;if(!u)return;try{if(navigator.clipboard){navigator.clipboard.writeText(u).then(function(){toast('Copy URL แล้ว');}).catch(function(){toast(u);});}else{toast(u);}}catch(e){toast(u);}}
   function doShare(){if(!srvURL)return;if(navigator.share){navigator.share({title:'goodfile',url:srvURL}).catch(function(){});}else{copyURL(srvURL);}}
-  function doStop(){if(getPlugin()){try{getPlugin().stopServer();}catch(e){}}nsdUnregister();srvURL=null;curFile=null;fileQueue=[];hideXbar();$('prog').classList.remove('on');$('srv').style.display='none';$('flist').classList.remove('on');showErr(null);setBadge('Ready');var lc=$('link-card');if(lc)lc.classList.remove('on');if(_linkExpireTimer){clearTimeout(_linkExpireTimer);_linkExpireTimer=null;}}
+  function doStop(){if(getPlugin()){try{getPlugin().stopServer();}catch(e){}}nsdUnregister();
+    if(_waitTimer){clearTimeout(_waitTimer);_waitTimer=null;}
+    _clientSeen=false;_waitURL=null;
+    var _ch=$('conn-help');if(_ch)_ch.classList.remove('on');
+    srvURL=null;curFile=null;fileQueue=[];hideXbar();$('prog').classList.remove('on');$('srv').style.display='none';$('flist').classList.remove('on');showErr(null);setBadge('Ready');var lc=$('link-card');if(lc)lc.classList.remove('on');if(_linkExpireTimer){clearTimeout(_linkExpireTimer);_linkExpireTimer=null;}}
   function showSuccess(name,size){$('popup-ic').textContent='🚀';$('popup-title').textContent='Ready to Share!';var uri=window._lastSavedUri||'';var path=uri?uri.replace('file://','').replace(/\/[^\/]+$/,'/'):('Android/CACHE/'+name);$('popup-sub').textContent=name+'\n'+size+'\n📁 '+path;histAdd({type:'sent',name:name,size:curFile?curFile.size:0,url:srvURL,ip:window._lastServerIP});showSharePopup();}
   function showSharePopup(){void $('popup-ic').offsetWidth;$('overlay').classList.add('on');setTimeout(function(){$('popup').classList.add('on');},20);if(typeof launchConfetti==='function')launchConfetti();}
   function launchConfetti(){var canvas=$('confetti-canvas'),ctx=canvas.getContext('2d');canvas.width=window.innerWidth;canvas.height=window.innerHeight;canvas.classList.add('on');var colors=['#52D68A','#27B562','#89D4F5','#FFD700','#FF6B9D','#ffffff','#5BB8EC','#FFA94D','#C77DFF','#A78BFA'];function rnd(a,b){return a+Math.random()*(b-a);}function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}function makePiece(type){var ox=canvas.width*rnd(0.2,0.8),oy=canvas.height*rnd(-0.1,0.1),color=pick(colors),color2=pick(colors);if(type==='ribbon')return{type:'ribbon',x:ox,y:oy,vx:rnd(-8,8),vy:rnd(0.8,4.5),len:rnd(28,70),wid:rnd(4,11),angle:rnd(0,Math.PI*2),angV:rnd(-0.12,0.12),wave:rnd(0,Math.PI*2),waveSpd:rnd(0.07,0.19),color:color,color2:color2,alpha:1,gravity:rnd(0.04,0.13),drag:rnd(0.972,0.996)};if(type==='rect')return{type:'rect',x:ox,y:oy,vx:rnd(-9,9),vy:rnd(0.3,4),w:rnd(7,18),h:rnd(5,12),angle:rnd(0,Math.PI*2),angV:rnd(-0.2,0.2),color:color,alpha:1,gravity:rnd(0.05,0.13),drag:rnd(0.97,0.99)};return{type:'dot',x:ox,y:oy,vx:rnd(-11,11),vy:rnd(-5,4),r:rnd(3,7),color:color,alpha:1,gravity:rnd(0.07,0.18),drag:rnd(0.96,0.99)};}var pieces=[],TOTAL=160;for(var i=0;i<TOTAL;i++){var t=Math.random(),type=t<0.40?'ribbon':t<0.72?'rect':'dot';pieces.push(makePiece(type));}var startTime=null,DURATION=4600;function draw(ts){if(!startTime)startTime=ts;var elapsed=ts-startTime,progress=elapsed/DURATION;ctx.clearRect(0,0,canvas.width,canvas.height);var allDone=true;for(var i=0;i<pieces.length;i++){var p=pieces[i];if(elapsed<(p._delay||0)){allDone=false;continue;}var fadeAt=0.60;if(progress>fadeAt)p.alpha=Math.max(0,1-(progress-fadeAt)/(1-fadeAt));if(p.alpha<=0)continue;allDone=false;p.vy+=p.gravity;p.vx*=p.drag;p.vy*=p.drag;p.x+=p.vx;p.y+=p.vy;ctx.save();ctx.globalAlpha=p.alpha;if(p.type==='ribbon'){p.wave+=p.waveSpd;p.angle+=p.angV;ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.scale(Math.cos(p.wave),1);ctx.fillStyle=p.color;ctx.fillRect(-p.wid/2,0,p.wid,p.len);}else if(p.type==='rect'){p.angle+=p.angV;ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);}else{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();}ctx.restore();}if(!allDone&&elapsed<DURATION+800)requestAnimationFrame(draw);else{canvas.classList.remove('on');ctx.clearRect(0,0,canvas.width,canvas.height);}}requestAnimationFrame(draw);}
@@ -1544,8 +1567,14 @@ function startNative(file){
       }
       diagPing(srvURL,function(ok){
         if(ok){
+          // This only proves OUR server is up -- it was a request to ourselves.
+          // It says nothing about whether the other phone can reach us, so don't
+          // claim success here. Only clientConnected can do that.
           var ip=window._lastServerIP||'';
-          setConnStatus('good','\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E41\u0E25\u0E49\u0E27 \u2713',(ip?'IP '+ip+' \u00B7 ':'')+'\u0E43\u0E2B\u0E49\u0E1B\u0E25\u0E32\u0E22\u0E17\u0E32\u0E07\u0E15\u0E48\u0E2D WiFi \u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E2A\u0E41\u0E01\u0E19 QR');
+          var sub=ip.replace(/\.\d+$/,'.x');
+          setConnStatus('wait','\u0E40\u0E0B\u0E34\u0E23\u0E4C\u0E1F\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E1E\u0E23\u0E49\u0E2D\u0E21 \u00B7 \u0E23\u0E2D\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E2D\u0E37\u0E48\u0E19\u0E2A\u0E41\u0E01\u0E19',
+            '\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E19\u0E35\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E27\u0E07 '+(sub||'\u2014')+' \u2014 \u0E2D\u0E35\u0E01\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E15\u0E49\u0E2D\u0E07\u0E2D\u0E22\u0E39\u0E48 WiFi \u0E0A\u0E37\u0E48\u0E2D\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19');
+          armWaitingForClient();
         }else{
           if(window.GFDiag)window.GFDiag.error('server.unreachable',{ip:window._lastServerIP||''});
           setConnStatus('bad','\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49','\u0E40\u0E0B\u0E34\u0E23\u0E4C\u0E1F\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E44\u0E21\u0E48\u0E15\u0E2D\u0E1A \u2014 \u0E40\u0E04\u0E23\u0E37\u0E2D\u0E02\u0E48\u0E32\u0E22\u0E19\u0E35\u0E49\u0E2D\u0E32\u0E08\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D \u0E25\u0E2D\u0E07\u0E2A\u0E25\u0E31\u0E1A\u0E44\u0E1B Hotspot \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 \u201C\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u201D');
@@ -1600,7 +1629,36 @@ function startNative(file){
       // The receiver gets a 401 and we would never hear about it. Surface it to
       // the sender -- they are the only one who can hand over a working QR.
       try{FS.addListener('unauthorizedScan',onUnauthorizedScan);}catch(e){}
+      try{FS.addListener('clientConnected',onClientConnected);}catch(e){}
     }
+  }
+  /* ===== Did the other device actually reach us? =====
+     Pinging our own server proves nothing. A request from another device is the
+     only real evidence, so the UI stays in "waiting" until one arrives, and if
+     none does we say so and offer the fallback that always works. */
+  var _waitTimer=null,_clientSeen=false,_waitURL=null;
+  function armWaitingForClient(){
+    // A new serving session starts over; re-testing the same one must not
+    // discard the fact that a device already reached us.
+    if(_waitURL!==srvURL){_clientSeen=false;_waitURL=srvURL;}
+    if(_clientSeen)return;
+    if(_waitTimer)clearTimeout(_waitTimer);
+    var help=$('conn-help');if(help)help.classList.remove('on');
+    _waitTimer=setTimeout(function(){
+      if(_clientSeen||!srvURL)return;
+      if(window.GFDiag)window.GFDiag.warn('client.none',{afterMs:20000,ip:window._lastServerIP||''});
+      setConnStatus('bad','ยังไม่มีเครื่องไหนเชื่อมต่อ','อีกเครื่องอาจอยู่คนละ WiFi หรือ WiFi นี้บล็อกการเชื่อมต่อ');
+      var h=$('conn-help');if(h)h.classList.add('on');
+    },20000);
+  }
+  function onClientConnected(data){
+    _clientSeen=true;
+    if(_waitTimer){clearTimeout(_waitTimer);_waitTimer=null;}
+    var help=$('conn-help');if(help)help.classList.remove('on');
+    var ip=(data&&data.ip)||'';
+    if(window.GFDiag)window.GFDiag.log('client.connected',{ip:ip});
+    setConnStatus('live','📱 อีกเครื่องเชื่อมต่อแล้ว ✓',(ip?ip+' · ':'')+'เชื่อมถึงกันได้จริง กำลังรับไฟล์');
+    toast('📱 อีกเครื่องเชื่อมต่อแล้ว');
   }
   function onUnauthorizedScan(data){
     if(window.GFDiag)window.GFDiag.warn('scan.unauthorized',{path:(data&&data.path)||'',hadToken:!!(data&&data.hadToken)});
