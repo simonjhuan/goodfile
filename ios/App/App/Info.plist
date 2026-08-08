@@ -26,6 +26,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Share files directly with devices on your local network.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan a QR code to connect to the other device.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
