@@ -632,6 +632,7 @@
     if(window.linkShow) setTimeout(window.linkShow, 500);
     // Offer the no-QR push path once the server is genuinely up.
     if(window.nearbyStartForSend) setTimeout(window.nearbyStartForSend, 500);
+    if(window.qrTabAvail) window.qrTabAvail(true);
     _serverReady = true;
   }
 

@@ -86,6 +86,11 @@ const MUST_TRANSLATE = [
   '❌ ส่งตรงไม่สำเร็จ — ใช้ QR แทนได้',
   'ส่งตรงไม่ได้ — ใช้ QR แทน',
   'กำลังส่งอยู่',
+  // home screen: secondary tools + theme
+  'เครื่องมือเพิ่มเติม',
+  '🟩 ธีมแฮกเกอร์',
+  'พื้นหลังตัวอักษรตกแบบ Matrix (ปิดไว้เพื่อให้อ่านง่ายและประหยัดแบต)',
+  'ส่งตรงแบบไม่ผ่าน WiFi ร่วม สำหรับ iPhone หรือเมื่อไม่มีเราเตอร์',
 ];
 
 // Built by concatenation at runtime, so each half must translate on its own.

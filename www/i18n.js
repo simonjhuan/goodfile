@@ -58,6 +58,12 @@
     "ส่งตรงไม่ได้ — ใช้ QR แทน":"Can't send directly — use the QR",
     "✅ ส่งถึง":"✅ Delivered to",
     "อีกเครื่อง":"the other device",
+    // ---- home screen: secondary tools + theme ----
+    "เครื่องมือเพิ่มเติม":"More tools",
+    "🟩 ธีมแฮกเกอร์":"🟩 Hacker theme",
+    "พื้นหลังตัวอักษรตกแบบ Matrix (ปิดไว้เพื่อให้อ่านง่ายและประหยัดแบต)":"Falling Matrix characters (off by default for readability and battery)",
+    "ส่งตรงแบบไม่ผ่าน WiFi ร่วม สำหรับ iPhone หรือเมื่อไม่มีเราเตอร์":"Send without a shared WiFi — for iPhone, or when there's no router",
+    "เปิด":"Open",
     // ---- problem reporting (on-device log, user-initiated) ----
     "📋 รายงานปัญหา":"📋 Report a problem",
     "ขอบคุณครับ 🙏":"Thank you 🙏",
@@ -259,9 +265,21 @@
     b.id = 'gf-lang-btn'; b.type = 'button';
     b.textContent = GF.lang === 'th' ? 'EN' : 'ไทย';
     b.setAttribute('aria-label', 'Switch language');
+    // Sit inside the header next to the other controls. As a fixed-position
+    // overlay this landed on top of the theme button, so the two rendered as
+    // one unreadable blob in the top-right corner.
+    var host = document.querySelector('.hdr-right');
+    if (host) {
+      b.className = 'icon-btn';
+      b.style.cssText = 'width:auto;padding:0 10px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer';
+      b.onclick = function(){ GF.setLang(GF.lang === 'th' ? 'en' : 'th'); };
+      host.insertBefore(b, host.firstChild);
+      return;
+    }
+    // Pages we don't own the header of (the served upload/gallery pages).
     b.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top) + 8px);right:10px;z-index:99999;'
       + 'background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:100px;'
-      + 'padding:6px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;backdrop-filter:blur(8px)';
+      + 'padding:6px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer';
     b.onclick = function(){ GF.setLang(GF.lang === 'th' ? 'en' : 'th'); };
     document.body.appendChild(b);
   }

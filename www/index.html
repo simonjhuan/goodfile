@@ -212,6 +212,20 @@
     .nb-inf{font-size:11px;color:var(--t3);margin-top:1px}
     .nb-go{flex-shrink:0;font-size:12px;font-weight:700;color:var(--green)}
     .nb-star{font-size:10px;color:var(--t3)}
+    .more-toggle{width:100%;margin-top:10px;background:transparent;border:1px solid var(--card-bd);border-radius:var(--r);color:var(--t2);font-family:inherit;font-size:13px;font-weight:600;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+    .more-caret{transition:transform .2s}
+    .more-toggle.open .more-caret{transform:rotate(180deg)}
+    .more-wrap{display:none}
+    .more-wrap.on{display:block}
+    /* Send / QR / Direct all read as "a way to send" and nobody could tell them
+       apart. QR and Direct are steps inside sending, not places -- QR surfaces
+       itself once a transfer is live, Direct lives under the More section. */
+    #n-qr,#n-p2p{display:none}
+    #n-qr.avail{display:flex}
+    .set-row{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-top:10px;border-radius:var(--r);border:1px solid var(--card-bd);background:var(--bg2)}
+    .set-txt{flex:1;min-width:0}
+    .set-nm{font-size:13.5px;font-weight:600;color:var(--t1)}
+    .set-sub{font-size:11px;color:var(--t3);margin-top:2px;line-height:1.5}
     .wd-ip{font-size:11px;font-weight:700;color:var(--green)}
     .wd-steps{background:var(--card);border:1px solid var(--card-bd);border-radius:var(--r2);overflow:hidden}
     .wd-step{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--card-bd2)}.wd-step:last-child{border-bottom:none}
@@ -419,6 +433,13 @@
             </div>
           </div>
         </div>
+        <!-- Hotspot and Clipboard are fallbacks and niche features. Giving them
+             full-size cards on the first screen made the app look like it needed
+             a networking decision before you could send anything. -->
+        <button class="more-toggle" id="more-toggle" type="button">
+          <span>เครื่องมือเพิ่มเติม</span><span class="more-caret" id="more-caret">▾</span>
+        </button>
+        <div class="more-wrap" id="more-wrap">
         <div class="hs-card" id="hs-card">
           <div class="card-head">
             <div class="hs-status">
@@ -454,6 +475,23 @@
             </div>
           </div>
         </div>
+          <!-- The falling-katakana background, kept as a choice rather than the
+               default first impression. -->
+          <div class="set-row">
+            <div class="set-txt">
+              <div class="set-nm">🟩 ธีมแฮกเกอร์</div>
+              <div class="set-sub">พื้นหลังตัวอักษรตกแบบ Matrix (ปิดไว้เพื่อให้อ่านง่ายและประหยัดแบต)</div>
+            </div>
+            <label class="ar-sw"><input type="checkbox" id="set-matrix"><span class="ar-sl"></span></label>
+          </div>
+          <div class="set-row" id="set-direct-row">
+            <div class="set-txt">
+              <div class="set-nm">⚡ Direct (P2P)</div>
+              <div class="set-sub">ส่งตรงแบบไม่ผ่าน WiFi ร่วม สำหรับ iPhone หรือเมื่อไม่มีเราเตอร์</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-open-p2p" type="button">เปิด</button>
+          </div>
+        </div><!-- /more-wrap -->
         <div class="link-card" id="link-card">
           <div class="card">
             <div class="card-head">
@@ -1359,13 +1397,13 @@ function startNative(file){
 }
 
   function previewMode(file){setProgress('Preview mode',100);setBadge('Preview');onServerReady('http://192.168.1.100:8080/download','192.168.1.100',file);}
-  function onServerReady(url,ip,file){srvURL=url;window._lastServerIP=ip||'';window._lastServerFile=file;$('srv').style.display='block';$('srv-url').textContent=url;setProgress('Server running',100);setBadge((ip?'📡 '+ip:'Live'),true);buildQR(url,file);$('xbar-name').textContent='✓ '+file.name;setTimeout(hideXbar,2500);go('qr');toast('✅ QR พร้อม — IP: '+(window._lastServerIP||''));setTimeout(function(){showSuccess(file.name,fmt(file.size));},400);var _port=parseInt((url.match(/:(\d+)/)||[0,8080])[1]);var _tok=(url.match(/[?&]t=([^&]+)/)||[])[1]||'';nsdRegister(_port,file.name,_tok);setTimeout(linkShow,600);setTimeout(connPreflight,300);setTimeout(nearbyStartForSend,500);}
+  function onServerReady(url,ip,file){srvURL=url;window._lastServerIP=ip||'';window._lastServerFile=file;$('srv').style.display='block';$('srv-url').textContent=url;setProgress('Server running',100);setBadge((ip?'📡 '+ip:'Live'),true);buildQR(url,file);$('xbar-name').textContent='✓ '+file.name;setTimeout(hideXbar,2500);go('qr');toast('✅ QR พร้อม — IP: '+(window._lastServerIP||''));setTimeout(function(){showSuccess(file.name,fmt(file.size));},400);var _port=parseInt((url.match(/:(\d+)/)||[0,8080])[1]);var _tok=(url.match(/[?&]t=([^&]+)/)||[])[1]||'';nsdRegister(_port,file.name,_tok);setTimeout(linkShow,600);setTimeout(connPreflight,300);setTimeout(nearbyStartForSend,500);qrTabAvail(true);}
   function buildQR(url,file){var wrap=$('qr-wrap');wrap.innerHTML='';var qrFrame=document.createElement('div');qrFrame.className='qr-frame';var qrDiv=document.createElement('div');qrFrame.appendChild(qrDiv);wrap.appendChild(qrFrame);var fname=document.createElement('div');fname.className='qr-fn';fname.textContent=file?file.name:'File';wrap.appendChild(fname);var fsize=document.createElement('div');fsize.className='qr-fs';fsize.textContent=file?fmt(file.size):'';wrap.appendChild(fsize);var urlBox=document.createElement('div');urlBox.className='qr-url';urlBox.textContent=url;urlBox.addEventListener('click',function(){copyURL(url);});wrap.appendChild(urlBox);var shareBtn=document.createElement('button');shareBtn.className='qr-share-btn';shareBtn.type='button';shareBtn.textContent='Share Link';shareBtn.addEventListener('click',doShare);wrap.appendChild(shareBtn);qrDiv.innerHTML='<div style="width:240px;height:240px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#aaa">Loading QR...</div>';function makeQR(a){a=a||0;if(window.QRCode){qrDiv.innerHTML='';try{new QRCode(qrDiv,{text:url,width:240,height:240,colorDark:'#000000',colorLight:'#ffffff',correctLevel:0});}catch(e){qrDiv.textContent=url;}}else if(a<40){setTimeout(function(){makeQR(a+1);},50);}else{qrDiv.textContent=url;}}makeQR();}
   function copyURL(url){var u=url||srvURL;if(!u)return;try{if(navigator.clipboard){navigator.clipboard.writeText(u).then(function(){toast('Copy URL แล้ว');}).catch(function(){toast(u);});}else{toast(u);}}catch(e){toast(u);}}
   function doShare(){if(!srvURL)return;if(navigator.share){navigator.share({title:'goodfile',url:srvURL}).catch(function(){});}else{copyURL(srvURL);}}
   function doStop(){if(getPlugin()){try{getPlugin().stopServer();}catch(e){}}nsdUnregister();
     if(_waitTimer){clearTimeout(_waitTimer);_waitTimer=null;}
-    _clientSeen=false;_waitURL=null;
+    _clientSeen=false;_waitURL=null;qrTabAvail(false);
     var _ch=$('conn-help');if(_ch)_ch.classList.remove('on');
     srvURL=null;curFile=null;fileQueue=[];hideXbar();$('prog').classList.remove('on');$('srv').style.display='none';$('flist').classList.remove('on');showErr(null);setBadge('Ready');var lc=$('link-card');if(lc)lc.classList.remove('on');if(_linkExpireTimer){clearTimeout(_linkExpireTimer);_linkExpireTimer=null;}}
   function showSuccess(name,size){$('popup-ic').textContent='🚀';$('popup-title').textContent='Ready to Share!';var uri=window._lastSavedUri||'';var path=uri?uri.replace('file://','').replace(/\/[^\/]+$/,'/'):('Android/CACHE/'+name);$('popup-sub').textContent=name+'\n'+size+'\n📁 '+path;histAdd({type:'sent',name:name,size:curFile?curFile.size:0,url:srvURL,ip:window._lastServerIP});showSharePopup();}
@@ -1477,6 +1515,10 @@ function startNative(file){
     });
     Nsd.startDiscovery().catch(function(){});
   }
+  // The QR tab only means something while a transfer is live; showing it
+  // permanently made it look like a third way to send.
+  function qrTabAvail(on){var n=$('n-qr');if(n)n.classList.toggle('avail',!!on);}
+  window.qrTabAvail=qrTabAvail;
   window.nearbyStartForSend=nearbyStartForSend;
   function nearbyStop(){_nearby={};var c=$('nearby-card');if(c)c.style.display='none';}
   function renderNearby(){
@@ -2011,6 +2053,20 @@ function startNative(file){
 
   function bindEvents(){
     on('theme-btn','click',toggleTheme);
+    on('more-toggle','click',function(){
+      var w=$('more-wrap'),t=$('more-toggle');
+      var open=w.classList.toggle('on');
+      t.classList.toggle('open',open);
+    });
+    on('btn-open-p2p','click',function(){go('p2p');});
+    (function(){
+      var box=$('set-matrix');if(!box)return;
+      box.checked=!!(window.matrixIsEnabled&&window.matrixIsEnabled());
+      box.addEventListener('change',function(){
+        if(window.matrixSetEnabled)window.matrixSetEnabled(box.checked);
+        if(window.GFDiag)window.GFDiag.log('theme.matrix',{on:box.checked});
+      });
+    })();
     on('n-send','click',function(){go('send');});
     on('n-qr','click',function(){go('qr');});
     on('conn-retry','click',connPreflight);
@@ -2160,10 +2216,21 @@ function startNative(file){
       function dr(t){if(!run)return;try{var fps=bn?36:24,iv=1000/fps;if(t-lt<iv){id=requestAnimationFrame(dr);return;}lt=t;x.fillStyle=bn?'rgba(10,15,30,0.05)':'rgba(10,15,30,0.08)';x.fillRect(0,0,c.width,c.height);x.fillStyle=bn?'#00FF88':'#00E676';x.font=fs+'px monospace';for(var i=0;i<d.length;i++){x.fillText(ch[Math.floor(Math.random()*ch.length)],i*fs,d[i]*fs);if(d[i]*fs>c.height&&Math.random()>0.975)d[i]=0;d[i]++;}id=requestAnimationFrame(dr);}catch(e){run=false;}}
       function st(){if(run)return;run=true;lt=0;id=requestAnimationFrame(dr);}
       function sp(){run=false;if(id){cancelAnimationFrame(id);id=null;}}
-      window.matrixBurst=function(){try{bn=true;c.classList.add('burst');if(bt)clearTimeout(bt);bt=setTimeout(function(){bn=false;c.classList.remove('burst');},3000);}catch(e){}};
-      document.addEventListener('visibilitychange',function(){try{if(document.hidden)sp();else st();}catch(e){}});
+      window.matrixBurst=function(){try{if(!matrixOn())return;bn=true;c.classList.add('burst');if(bt)clearTimeout(bt);bt=setTimeout(function(){bn=false;c.classList.remove('burst');},3000);}catch(e){}};
+      document.addEventListener('visibilitychange',function(){try{if(document.hidden)sp();else if(window.matrixIsEnabled&&window.matrixIsEnabled())st();}catch(e){}});
       var rt;window.addEventListener('resize',function(){try{if(rt)clearTimeout(rt);rt=setTimeout(rz,200);}catch(e){}});
-      setTimeout(function(){try{rz();c.classList.add('on');st();}catch(e){}},800);
+      /* Falling katakana reads as "hacker tool", which is the opposite of what
+         someone sending photos to a relative needs to feel. It also lowers text
+         contrast and runs an animation loop the whole time the app is open.
+         Kept in full, but opt-in: Settings -> Hacker theme. */
+      function matrixOn(){try{return localStorage.getItem('_gf_matrix')==='1';}catch(e){return false;}}
+      window.matrixSetEnabled=function(on){
+        try{localStorage.setItem('_gf_matrix',on?'1':'0');}catch(e){}
+        if(on){try{rz();c.classList.add('on');st();}catch(e){}}
+        else{try{sp();c.classList.remove('on','burst');x.clearRect(0,0,c.width,c.height);}catch(e){}}
+      };
+      window.matrixIsEnabled=matrixOn;
+      setTimeout(function(){try{if(matrixOn()){rz();c.classList.add('on');st();}}catch(e){}},800);
       try{if(typeof window.toast==='function'){var ot=window.toast;window.toast=function(m){try{ot(m);if(String(m||'').match(/สำเร็จ|✅|🎉/)){if(window.matrixBurst)window.matrixBurst();}}catch(e){try{ot(m);}catch(e2){}}};}}catch(e){}
     }catch(e){console.error('Matrix init failed:',e);}
   })();
