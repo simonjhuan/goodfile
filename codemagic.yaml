@@ -6,6 +6,8 @@ workflows:
     integrations:
       app_store_connect: goodfile_appstore_api_key
     environment:
+      groups:
+        - code_signing
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
