@@ -337,8 +337,7 @@
     .nav{position:fixed;bottom:0;left:0;right:0;z-index:200;padding:0 12px calc(var(--sb) + 8px)}
     .nav-bar{background:var(--bg2);border:1px solid var(--card-bd);border-radius:20px;padding:6px;display:flex;gap:2px;box-shadow:0 -4px 40px rgba(0,0,0,.3)}
     .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:14px;background:none;border:none;color:var(--t3);transition:background .2s,color .2s;cursor:pointer}
-    .nav-item.on{background:var(--card-bd);color:var(--t1)}
-    .nav-item.on.green-tab{background:var(--green);color:#fff}
+    .nav-item.on{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(41,121,255,.25)}
     .nav-item:active{opacity:.7}
     .nav-ic{font-size:19px;line-height:1;transition:transform .2s}.nav-item.on .nav-ic{transform:scale(1.1)}
     .nav-lbl{font-size:10px;font-weight:600;letter-spacing:.2px}
@@ -813,7 +812,7 @@
 
   <div class="nav">
     <div class="nav-bar">
-      <button class="nav-item on green-tab" id="n-send" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5L12 4l8.5 6.5V19a1.5 1.5 0 01-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 013.5 19v-8.5z"/></svg></span><span class="nav-lbl">ส่ง</span></button>
+      <button class="nav-item on" id="n-send" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5L12 4l8.5 6.5V19a1.5 1.5 0 01-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 013.5 19v-8.5z"/></svg></span><span class="nav-lbl">ส่ง</span></button>
       <button class="nav-item" id="n-recv" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg></span><span class="nav-lbl">รับไฟล์</span></button>
       <button class="nav-item" id="n-hist" type="button"><span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><span class="nav-lbl">กิจกรรม</span></button>
     </div>
