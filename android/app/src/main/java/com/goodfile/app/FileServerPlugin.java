@@ -34,11 +34,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
@@ -261,6 +263,102 @@ public class FileServerPlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("ok", true);
         call.resolve(ret);
+    }
+
+    /**
+     * Push a file straight to a device that advertised itself as a receiver.
+     * This is the no-QR path: nothing is copied to disk and no browser is
+     * involved -- we stream the original content:// uri into their /upload.
+     */
+    @PluginMethod
+    public void uploadFile(PluginCall call) {
+        String uri = call.getString("uri", "");
+        String target = call.getString("url", "");
+        String name = call.getString("fileName", "file");
+        String mime = call.getString("mimeType", "application/octet-stream");
+        Double szD = call.getDouble("size", -1.0);
+        if (uri.isEmpty() || target.isEmpty()) {
+            call.reject("Missing uri or url");
+            return;
+        }
+        final long declared = (szD == null) ? -1L : szD.longValue();
+        pool.execute(() -> {
+            HttpURLConnection conn = null;
+            try {
+                long total = declared;
+                if (total < 0) total = sizeOf(uri);
+
+                String sep = target.indexOf('?') >= 0 ? "&" : "?";
+                URL url = new URL(target + sep + "name=" + java.net.URLEncoder.encode(name, "UTF-8"));
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setDoOutput(true);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", mime);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(60000);
+                if (total >= 0) conn.setFixedLengthStreamingMode(total);
+                else conn.setChunkedStreamingMode(256 * 1024);
+
+                InputStream in = openUriStream(uri);
+                if (in == null) throw new IOException("Cannot open " + uri);
+
+                long sent = 0;
+                long lastTick = 0;
+                try (BufferedInputStream bin = new BufferedInputStream(in);
+                     OutputStream out = new BufferedOutputStream(conn.getOutputStream())) {
+                    byte[] buf = new byte[256 * 1024];
+                    int n;
+                    while ((n = bin.read(buf)) != -1) {
+                        out.write(buf, 0, n);
+                        sent += n;
+                        // Throttle: a progress event per chunk would flood the bridge.
+                        if (System.currentTimeMillis() - lastTick > 200) {
+                            lastTick = System.currentTimeMillis();
+                            JSObject p = new JSObject();
+                            p.put("sent", sent);
+                            p.put("total", total);
+                            p.put("pct", total > 0 ? (int) (sent * 100 / total) : -1);
+                            main.post(() -> notifyListeners("uploadProgress", p));
+                        }
+                    }
+                    out.flush();
+                }
+
+                int code = conn.getResponseCode();
+                if (code < 200 || code >= 300) throw new IOException("HTTP " + code);
+
+                final long sentF = sent;
+                JSObject ret = new JSObject();
+                ret.put("ok", true);
+                ret.put("sent", sentF);
+                ret.put("status", code);
+                main.post(() -> call.resolve(ret));
+            } catch (Exception e) {
+                String msg = e.getMessage() == null ? e.toString() : e.getMessage();
+                main.post(() -> call.reject("Upload failed: " + msg));
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        });
+    }
+
+    private long sizeOf(String uriStr) {
+        try {
+            Uri u = Uri.parse(uriStr);
+            if ("content".equalsIgnoreCase(u.getScheme())) {
+                try (Cursor c = getContext().getContentResolver().query(u, null, null, null, null)) {
+                    if (c != null && c.moveToFirst()) {
+                        int si = c.getColumnIndex(OpenableColumns.SIZE);
+                        if (si >= 0 && !c.isNull(si)) return c.getLong(si);
+                    }
+                }
+                return -1;
+            }
+            File f = "file".equalsIgnoreCase(u.getScheme()) ? new File(u.getPath()) : new File(uriStr);
+            return f.exists() ? f.length() : -1;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     @PluginMethod

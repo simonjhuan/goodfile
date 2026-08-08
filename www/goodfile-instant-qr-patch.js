@@ -630,6 +630,8 @@
     var tok = (url.match(/[?&]t=([^&]+)/) || [])[1] || window._gfToken || '';
     if(window.nsdRegister) window.nsdRegister(port, file.name, tok);
     if(window.linkShow) setTimeout(window.linkShow, 500);
+    // Offer the no-QR push path once the server is genuinely up.
+    if(window.nearbyStartForSend) setTimeout(window.nearbyStartForSend, 500);
     _serverReady = true;
   }
 

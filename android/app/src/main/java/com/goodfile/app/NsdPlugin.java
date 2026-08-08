@@ -41,6 +41,10 @@ public class NsdPlugin extends Plugin {
         String deviceName = call.getString("deviceName", android.os.Build.MODEL);
         String fileName = call.getString("fileName", "");
         String tok = call.getString("token", "");
+        // "send" = advertising a file we're serving (scan our QR to pull it).
+        // "recv" = advertising that we accept a push, which is what lets the
+        // other device send with one tap and no QR at all.
+        String role = call.getString("role", "send");
 
         unregisterInternal();
 
@@ -53,6 +57,10 @@ public class NsdPlugin extends Plugin {
         info.setPort(port);
         info.setAttribute("device", safeAttr(deviceName));
         info.setAttribute("file", safeAttr(fileName));
+        info.setAttribute("role", safeAttr(role));
+        // Stable per-install id so the other side can recognise this device
+        // across sessions even if its display name or IP changes.
+        info.setAttribute("did", deviceId());
         if (tok != null && !tok.isEmpty()) info.setAttribute("tok", safeAttr(tok));
 
         registrationListener = new NsdManager.RegistrationListener() {
@@ -156,17 +164,24 @@ public class NsdPlugin extends Plugin {
                     String device = attrStr(attrs, "device");
                     String file = attrStr(attrs, "file");
                     String tok = attrStr(attrs, "tok");
+                    String role = attrStr(attrs, "role");
+                    String did = attrStr(attrs, "did");
                     if (device == null || device.isEmpty()) device = i.getServiceName();
-                    String url = ip != null
-                            ? "http://" + ip + ":" + port + "/download"
-                              + (tok != null && !tok.isEmpty() ? "?t=" + tok : "")
-                            : "";
+                    if (role == null || role.isEmpty()) role = "send";   // older builds only advertised senders
+                    // A receiver exposes an upload endpoint; a sender exposes a download.
+                    String url = ip == null ? ""
+                            : "recv".equals(role)
+                                ? "http://" + ip + ":" + port + "/upload"
+                                : "http://" + ip + ":" + port + "/download"
+                                  + (tok != null && !tok.isEmpty() ? "?t=" + tok : "");
 
                     JSObject ev = new JSObject();
                     ev.put("event", "found");
                     ev.put("serviceName", i.getServiceName());
                     ev.put("deviceName", device);
                     ev.put("fileName", file != null ? file : "");
+                    ev.put("role", role);
+                    ev.put("deviceId", did != null ? did : "");
                     ev.put("ip", ip != null ? ip : "");
                     ev.put("port", port);
                     ev.put("url", url);
@@ -201,6 +216,18 @@ public class NsdPlugin extends Plugin {
         byte[] v = attrs.get(key);
         if (v == null) return null;
         try { return new String(v, "UTF-8"); } catch (Exception e) { return null; }
+    }
+
+    /** Random once, then kept, so a paired device stays recognisable across restarts. */
+    private String deviceId() {
+        android.content.SharedPreferences sp =
+                getContext().getSharedPreferences("goodfile", Context.MODE_PRIVATE);
+        String id = sp.getString("device_id", null);
+        if (id == null || id.isEmpty()) {
+            id = java.util.UUID.randomUUID().toString().substring(0, 8);
+            sp.edit().putString("device_id", id).apply();
+        }
+        return id;
     }
 
     private static String safeAttr(String s) {

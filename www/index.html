@@ -201,6 +201,17 @@
     .conn-help.on{display:block}
     .conn-help .ch-t{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:6px}
     .conn-help .ch-l{margin-top:3px}
+    .nearby{margin:10px 0 0;padding:12px 14px;border-radius:var(--r);border:1px solid rgba(0,230,118,.35);background:rgba(0,230,118,.06)}
+    .nearby-head{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+    .nearby-ttl{font-size:13px;font-weight:700;color:var(--t1)}
+    .nearby-hint{font-size:11px;color:var(--t3)}
+    .nb-row{display:flex;align-items:center;gap:11px;padding:10px 11px;margin-top:6px;border-radius:12px;border:1px solid var(--card-bd);background:var(--bg2);cursor:pointer}
+    .nb-row:active{opacity:.7}
+    .nb-av{width:34px;height:34px;border-radius:10px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+    .nb-nm{font-size:14px;font-weight:600;color:var(--t1)}
+    .nb-inf{font-size:11px;color:var(--t3);margin-top:1px}
+    .nb-go{flex-shrink:0;font-size:12px;font-weight:700;color:var(--green)}
+    .nb-star{font-size:10px;color:var(--t3)}
     .wd-ip{font-size:11px;font-weight:700;color:var(--green)}
     .wd-steps{background:var(--card);border:1px solid var(--card-bd);border-radius:var(--r2);overflow:hidden}
     .wd-step{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid var(--card-bd2)}.wd-step:last-child{border-bottom:none}
@@ -509,6 +520,15 @@
         <div class="ch-l">2. ปิดเน็ตมือถือของเครื่องที่ส่ง แล้วกดทดสอบใหม่</div>
         <div class="ch-l">3. WiFi โรงแรม ร้านกาแฟ ออฟฟิศ มักบล็อกไม่ให้เครื่องคุยกัน</div>
         <div class="ch-l">4. เปิด Hotspot จากเครื่องส่ง แล้วให้อีกเครื่องมาต่อ วิธีนี้ได้ผลเสมอ</div>
+      </div>
+      <!-- The no-QR path: devices that advertised themselves as ready to receive.
+           One tap pushes the file straight to them. -->
+      <div class="nearby" id="nearby-card" style="display:none">
+        <div class="nearby-head">
+          <span class="nearby-ttl">⚡ ส่งตรงถึงเครื่องใกล้เคียง</span>
+          <span class="nearby-hint">ไม่ต้องสแกน QR</span>
+        </div>
+        <div id="nearby-list"></div>
       </div>
       <div class="howto">
         <div class="howto-head">How to receive</div>
@@ -1086,7 +1106,11 @@
   function applyTheme(mode){var dark=(mode==='dark');if(dark)document.body.classList.add('dark');else document.body.classList.remove('dark');$('theme-btn').textContent=dark?'☀️':'🌙';}
   function toggleTheme(){var dark=!document.body.classList.contains('dark');applyTheme(dark?'dark':'light');try{localStorage.setItem('theme',dark?'dark':'light');}catch(e){}}
   var tabs=['send','qr','p2p','recv','hist'];
-  function go(tab){tabs.forEach(function(t){var s=$('s-'+t),n=$('n-'+t);if(s)s.classList.toggle('on',t===tab);if(n)n.classList.toggle('on',t===tab);});if(tab!=='recv'){stopScan();nsdStopDiscovery();}if(tab==='recv'){recvBuildQR();}if(tab!=='p2p')stopP2pScan();}
+  function go(tab){tabs.forEach(function(t){var s=$('s-'+t),n=$('n-'+t);if(s)s.classList.toggle('on',t===tab);if(n)n.classList.toggle('on',t===tab);});if(tab!=='recv'){stopScan();nsdStopDiscovery();}if(tab==='recv'){recvBuildQR();}if(tab!=='p2p')stopP2pScan();
+    // On the QR screen, look for devices ready to receive so the file can be
+    // pushed with one tap instead of scanned.
+    if(tab==='qr'&&srvURL)nearbyStartForSend();else if(tab!=='qr')nearbyStop();
+  }
   function onFileMulti(input){var files=Array.from(input.files);input.value='';if(!files.length)return;fileQueue=fileQueue.concat(files);renderFileList();}
   function renderFileList(){var flist=$('flist'),items=$('flist-items'),count=$('flist-count');if(!fileQueue.length){flist.classList.remove('on');return;}flist.classList.add('on');count.textContent=fileQueue.length;items.innerHTML='';fileQueue.forEach(function(f,i){var row=document.createElement('div');row.className='flist-row';row.innerHTML='<span class="flist-ic">'+fileEmoji(f.name)+'</span><span class="flist-nm">'+f.name+'</span><span class="flist-sz">'+fmt(f.size)+'</span><button class="flist-del" data-i="'+i+'" type="button">✕</button>';items.appendChild(row);});var btns=items.querySelectorAll('.flist-del');for(var x=0;x<btns.length;x++)btns[x].addEventListener('click',function(){fileQueue.splice(parseInt(this.dataset.i),1);renderFileList();});if(fileQueue.length>0&&!srvURL)startSendQueue();}
   function startSendQueue(){if(!fileQueue.length)return;if(fileQueue.length===1){processFile(fileQueue[0]);return;}loadJSZip(function(){var zip=new JSZip();fileQueue.forEach(function(f){zip.file(f.name,f);});setProgress('Zipping '+fileQueue.length+' files...',20);zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}}).then(function(blob){var d=new Date().toISOString().slice(0,10);processFile(new File([blob],'files-'+d+'.zip',{type:'application/zip'}));});});}
@@ -1335,7 +1359,7 @@ function startNative(file){
 }
 
   function previewMode(file){setProgress('Preview mode',100);setBadge('Preview');onServerReady('http://192.168.1.100:8080/download','192.168.1.100',file);}
-  function onServerReady(url,ip,file){srvURL=url;window._lastServerIP=ip||'';window._lastServerFile=file;$('srv').style.display='block';$('srv-url').textContent=url;setProgress('Server running',100);setBadge((ip?'📡 '+ip:'Live'),true);buildQR(url,file);$('xbar-name').textContent='✓ '+file.name;setTimeout(hideXbar,2500);go('qr');toast('✅ QR พร้อม — IP: '+(window._lastServerIP||''));setTimeout(function(){showSuccess(file.name,fmt(file.size));},400);var _port=parseInt((url.match(/:(\d+)/)||[0,8080])[1]);var _tok=(url.match(/[?&]t=([^&]+)/)||[])[1]||'';nsdRegister(_port,file.name,_tok);setTimeout(linkShow,600);setTimeout(connPreflight,300);}
+  function onServerReady(url,ip,file){srvURL=url;window._lastServerIP=ip||'';window._lastServerFile=file;$('srv').style.display='block';$('srv-url').textContent=url;setProgress('Server running',100);setBadge((ip?'📡 '+ip:'Live'),true);buildQR(url,file);$('xbar-name').textContent='✓ '+file.name;setTimeout(hideXbar,2500);go('qr');toast('✅ QR พร้อม — IP: '+(window._lastServerIP||''));setTimeout(function(){showSuccess(file.name,fmt(file.size));},400);var _port=parseInt((url.match(/:(\d+)/)||[0,8080])[1]);var _tok=(url.match(/[?&]t=([^&]+)/)||[])[1]||'';nsdRegister(_port,file.name,_tok);setTimeout(linkShow,600);setTimeout(connPreflight,300);setTimeout(nearbyStartForSend,500);}
   function buildQR(url,file){var wrap=$('qr-wrap');wrap.innerHTML='';var qrFrame=document.createElement('div');qrFrame.className='qr-frame';var qrDiv=document.createElement('div');qrFrame.appendChild(qrDiv);wrap.appendChild(qrFrame);var fname=document.createElement('div');fname.className='qr-fn';fname.textContent=file?file.name:'File';wrap.appendChild(fname);var fsize=document.createElement('div');fsize.className='qr-fs';fsize.textContent=file?fmt(file.size):'';wrap.appendChild(fsize);var urlBox=document.createElement('div');urlBox.className='qr-url';urlBox.textContent=url;urlBox.addEventListener('click',function(){copyURL(url);});wrap.appendChild(urlBox);var shareBtn=document.createElement('button');shareBtn.className='qr-share-btn';shareBtn.type='button';shareBtn.textContent='Share Link';shareBtn.addEventListener('click',doShare);wrap.appendChild(shareBtn);qrDiv.innerHTML='<div style="width:240px;height:240px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#aaa">Loading QR...</div>';function makeQR(a){a=a||0;if(window.QRCode){qrDiv.innerHTML='';try{new QRCode(qrDiv,{text:url,width:240,height:240,colorDark:'#000000',colorLight:'#ffffff',correctLevel:0});}catch(e){qrDiv.textContent=url;}}else if(a<40){setTimeout(function(){makeQR(a+1);},50);}else{qrDiv.textContent=url;}}makeQR();}
   function copyURL(url){var u=url||srvURL;if(!u)return;try{if(navigator.clipboard){navigator.clipboard.writeText(u).then(function(){toast('Copy URL แล้ว');}).catch(function(){toast(u);});}else{toast(u);}}catch(e){toast(u);}}
   function doShare(){if(!srvURL)return;if(navigator.share){navigator.share({title:'goodfile',url:srvURL}).catch(function(){});}else{copyURL(srvURL);}}
@@ -1409,10 +1433,108 @@ function startNative(file){
   function p2pResetReceiver(){p2pRecvBuf=[];p2pRecvSize=0;$('p2p-offer-input').value='';$('p2p-answer-qr').innerHTML='';p2pShowStep('pr',1);setBadge('Ready');}
 
   function getNsd(){return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Nsd;}
-  function nsdRegister(port,fileName,token){var Nsd=getNsd();if(!Nsd)return;Nsd.register({port:port||8080,deviceName:getDeviceName(),fileName:fileName||'',token:token||''}).catch(function(){});}
+  function nsdRegister(port,fileName,token,role){var Nsd=getNsd();if(!Nsd)return;Nsd.register({port:port||8080,deviceName:getDeviceName(),fileName:fileName||'',token:token||'',role:role||'send'}).catch(function(){});}
+  // Advertising ourselves as a receiver is what lets the other device send with
+  // one tap: it can push straight to our /upload, no QR to scan.
+  function nsdRegisterReceiver(port){nsdRegister(port||8081,'','','recv');}
+
+  /* ===== Devices we've transferred with before =====
+     Remembering them is what turns "scan a QR" into "tap the name you used
+     yesterday". Keyed by the device's stable id, not its IP, which changes. */
+  function pairedLoad(){try{return JSON.parse(localStorage.getItem('_gf_paired')||'{}');}catch(e){return{};}}
+  function pairedSave(m){try{localStorage.setItem('_gf_paired',JSON.stringify(m));}catch(e){}}
+  function pairedRemember(d){
+    if(!d||!d.deviceId)return;
+    var m=pairedLoad();
+    m[d.deviceId]={name:d.deviceName||d.name||'',last:Date.now()};
+    var keys=Object.keys(m);
+    if(keys.length>12){ // keep the list short and recent
+      keys.sort(function(a,b){return (m[b].last||0)-(m[a].last||0);}).slice(12).forEach(function(k){delete m[k];});
+    }
+    pairedSave(m);
+  }
+  function pairedKnown(id){return !!(id&&pairedLoad()[id]);}
   function nsdUnregister(){var Nsd=getNsd();if(!Nsd)return;Nsd.unregister().catch(function(){});}
   function nsdStartDiscovery(){var Nsd=getNsd();if(!Nsd){startDiscoverFallback();return;}var list=$('disc-list');list.innerHTML='<div class="disc-empty">📡 กำลังค้นหาอุปกรณ์ใกล้เคียง...</div>';setBadge('Scanning');var found={};Nsd.addListener('serviceFound',function(data){if(data.event==='lost'){delete found[data.serviceName];renderDiscovered(found);return;}found[data.serviceName]={name:data.deviceName||data.serviceName,file:data.fileName||'—',url:data.url,ip:data.ip};renderDiscovered(found);setBadge(Object.keys(found).length+' found',true);});Nsd.startDiscovery().catch(function(){startDiscoverFallback();});}
   function nsdStopDiscovery(){var Nsd=getNsd();if(Nsd)Nsd.stopDiscovery().catch(function(){});try{Nsd&&Nsd.removeAllListeners('serviceFound');}catch(e){}}
+
+  /* ===== One-tap send (no QR) =====
+     While our QR is up we also listen for devices advertising role=recv and
+     offer to push the file straight to them. The QR still works; this is the
+     shortcut for devices you've already used. */
+  var _nearby={},_nearbySending=false;
+  function nearbyStartForSend(){
+    var Nsd=getNsd();if(!Nsd)return;
+    _nearby={};renderNearby();
+    try{Nsd.removeAllListeners('serviceFound');}catch(e){}
+    Nsd.addListener('serviceFound',function(d){
+      if(!d)return;
+      if(d.event==='lost'){delete _nearby[d.serviceName];renderNearby();return;}
+      if(d.role!=='recv')return;                 // senders are not push targets
+      if(d.ip&&d.ip===window._lastServerIP)return; // don't offer to send to ourselves
+      _nearby[d.serviceName]={name:d.deviceName||d.serviceName,url:d.url,ip:d.ip,deviceId:d.deviceId||''};
+      renderNearby();
+    });
+    Nsd.startDiscovery().catch(function(){});
+  }
+  window.nearbyStartForSend=nearbyStartForSend;
+  function nearbyStop(){_nearby={};var c=$('nearby-card');if(c)c.style.display='none';}
+  function renderNearby(){
+    var card=$('nearby-card'),list=$('nearby-list');
+    if(!card||!list)return;
+    var keys=Object.keys(_nearby);
+    if(!keys.length){card.style.display='none';list.innerHTML='';return;}
+    // Devices you've sent to before come first -- usually your own PC or phone.
+    keys.sort(function(a,b){return (pairedKnown(_nearby[b].deviceId)?1:0)-(pairedKnown(_nearby[a].deviceId)?1:0);});
+    card.style.display='';
+    list.innerHTML='';
+    keys.forEach(function(k){
+      var d=_nearby[k];
+      var row=document.createElement('div');
+      row.className='nb-row';
+      var known=pairedKnown(d.deviceId);
+      row.innerHTML='<div class="nb-av">📲</div><div style="flex:1;min-width:0">'
+        +'<div class="nb-nm">'+(d.name||'—')+(known?' <span class="nb-star">★ เคยส่ง</span>':'')+'</div>'
+        +'<div class="nb-inf">'+(d.ip||'')+'</div></div>'
+        +'<span class="nb-go">ส่ง ›</span>';
+      row.addEventListener('click',function(){sendDirectTo(d);});
+      list.appendChild(row);
+    });
+  }
+  function sendDirectTo(dev){
+    if(_nearbySending){toast('กำลังส่งอยู่');return;}
+    var FS=getPlugin();
+    var uri=window._lastSavedUri,meta=window._lastServerFile;
+    if(!FS||!FS.uploadFile||!uri||!meta){toast('ส่งตรงไม่ได้ — ใช้ QR แทน');return;}
+    _nearbySending=true;
+    if(window.GFDiag)window.GFDiag.log('direct.send.start',{ip:dev.ip||'',fileName:meta.name||''});
+    setConnStatus('checking','กำลังส่งไปที่ '+(dev.name||'อีกเครื่อง')+'…','');
+    showXbar(meta.name,fileEmoji(meta.name),meta.size);
+    var prog=null;
+    try{prog=FS.addListener('uploadProgress',function(p){
+      var pct=(p&&p.pct)||0;
+      if(pct>=0){$('xbar-pct').textContent=pct+'%';$('xbar-fill').style.width=pct+'%';setProgress('กำลังส่ง '+pct+'%',pct);}
+    });}catch(e){}
+    FS.uploadFile({uri:uri,url:dev.url,fileName:meta.name,mimeType:meta.type||meta.mimeType||'application/octet-stream',size:meta.size})
+      .then(function(){
+        _nearbySending=false;
+        pairedRemember(dev);
+        if(window.GFDiag)window.GFDiag.log('direct.send.ok',{ip:dev.ip||'',fileName:meta.name||''});
+        setConnStatus('live','ส่งสำเร็จ ✓',(dev.name||'')+' ได้รับไฟล์แล้ว');
+        hideXbar();
+        toast('✅ ส่งถึง '+(dev.name||'อีกเครื่อง'));
+        celebrate('downloaded','Sent!',meta.name||'');
+      })
+      .catch(function(e){
+        _nearbySending=false;
+        var msg=(e&&(e.message||e.errorMessage))||String(e);
+        if(window.GFDiag)window.GFDiag.error('direct.send.failed',{ip:dev.ip||'',err:msg});
+        hideXbar();
+        setConnStatus('bad','ส่งตรงไม่สำเร็จ','ให้อีกเครื่องสแกน QR แทน');
+        toast('❌ ส่งตรงไม่สำเร็จ — ใช้ QR แทนได้');
+      })
+      .then(function(){try{if(prog&&prog.remove)prog.remove();}catch(e){}});
+  }
   function renderDiscovered(found){var list=$('disc-list');var keys=Object.keys(found);if(!keys.length){list.innerHTML='<div class="disc-empty">📡 กำลังค้นหา...</div>';return;}list.innerHTML='';keys.forEach(function(k){var d=found[k];var row=document.createElement('div');row.className='disc-row';row.innerHTML='<div class="disc-av">📱</div><div style="flex:1"><div class="disc-nm">'+(d.name||'—')+'</div><div class="disc-inf">'+(d.file||'—')+' · '+(d.ip||'')+'</div></div><span class="disc-arr">›</span>';row.addEventListener('click',function(){scannedURL=d.url;$('scan-url').textContent=d.url;$('scan-result').classList.add('on');clipShowRecvCard();toast('แตะ Download เพื่อรับไฟล์');});list.appendChild(row);});}
   function startDiscoverFallback(){var list=$('disc-list');list.innerHTML='<div class="disc-empty">🔍 สแกน IP...</div>';subnetPrefix(function(prefix){var found=[],done=0,total=254;for(var i=1;i<=254;i++){(function(ip){var url='http://'+prefix+ip+':8080/api/ping',ctrl=null,timer=null;try{ctrl=new AbortController();timer=setTimeout(function(){ctrl.abort();},900);}catch(e){}fetch(url,ctrl?{signal:ctrl.signal}:{}).then(function(r){return r.json();}).then(function(d){if(timer)clearTimeout(timer);if(d&&d.app==='goodfile'){found.push({name:d.device||(prefix+ip),file:d.fileName||'?',url:'http://'+prefix+ip+':8080/download',ip:prefix+ip});var obj={};found.forEach(function(f,idx){obj[idx]=f;});renderDiscovered(obj);}}).catch(function(){if(timer)clearTimeout(timer);}).finally(function(){done++;if(done===total)setBadge(found.length?found.length+' found':'Ready');});})(i);}});}
   function getDeviceName(){var ua=navigator.userAgent||'';var m=ua.match(/Android [0-9.]+; ([^)]+)\)/);return(m&&m[1])?m[1].split(';')[0].trim():'Android';}
@@ -1686,6 +1808,9 @@ function startNative(file){
         FileServer.startReceiveServer({port:port}).then(function(){
           var st=$('recv-qr-status');if(st)st.textContent='รอรับ';
           toast('📥 พร้อมรับไฟล์');
+          // Announce over mDNS so a sender nearby can push with one tap.
+          nsdRegisterReceiver(port);
+          if(window.GFDiag)window.GFDiag.log('recv.advertised',{port:port});
           if(FileServer.addListener){
             FileServer.addListener('fileReceived',function(data){
               console.log('📥 fileReceived raw:',JSON.stringify(data||{}));
