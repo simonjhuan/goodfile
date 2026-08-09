@@ -166,6 +166,7 @@ public class FileServerPlugin extends Plugin {
             try {
                 sendServer = new ServerSocket(port);
                 sendRunning = true;
+                main.post(() -> TransferService.start(getContext(), fileName));
                 String ip = getLocalIp();
                 JSObject ret = new JSObject();
                 ret.put("url", "http://" + ip + ":" + port + "/download?t=" + tok);
@@ -206,6 +207,7 @@ public class FileServerPlugin extends Plugin {
             try {
                 sendServer = new ServerSocket(port);
                 sendRunning = true;
+                main.post(() -> TransferService.start(getContext(), fileName));
                 String ip = getLocalIp();
                 JSObject ret = new JSObject();
                 ret.put("url", "http://" + ip + ":" + port + "/?t=" + tok);
@@ -449,7 +451,7 @@ public class FileServerPlugin extends Plugin {
                 return;
             }
             if (base.startsWith("/download")) {
-                streamFile(s.getOutputStream());
+                streamFile(s.getOutputStream(), req.range);
                 return;
             }
             byte[] body = "goodfile".getBytes(StandardCharsets.UTF_8);
@@ -622,47 +624,71 @@ public class FileServerPlugin extends Plugin {
                 + "</script></body></html>";
     }
 
-    private void streamFile(OutputStream raw) throws IOException {
+    private void streamFile(OutputStream raw, String rangeHeader) throws IOException {
         long length = fileSize;
         InputStream input;
         Uri uri = Uri.parse(fileUri);
         if ("file".equalsIgnoreCase(uri.getScheme())) {
-            File f = new File(uri.getPath());
-            length = f.length();
-            input = new java.io.FileInputStream(f);
+            File f = new File(uri.getPath()); length = f.length(); input = new java.io.FileInputStream(f);
         } else if (fileUri.startsWith("/")) {
-            File f = new File(fileUri);
-            length = f.length();
-            input = new java.io.FileInputStream(f);
+            File f = new File(fileUri); length = f.length(); input = new java.io.FileInputStream(f);
         } else {
             input = getContext().getContentResolver().openInputStream(uri);
         }
         if (input == null) throw new IOException("Cannot open file");
-        String headers = "HTTP/1.1 200 OK\r\n"
+        long start = 0;
+        if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+            try { start = Long.parseLong(rangeHeader.substring(6).split("-")[0]); } catch (Exception ignored) {}
+        }
+        if (length >= 0 && start >= length) {
+            raw.write(("HTTP/1.1 416 Range Not Satisfiable\r\nContent-Range: bytes */" + length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            raw.flush(); input.close(); return;
+        }
+        long skipped = 0;
+        while (skipped < start) {
+            long n = input.skip(start - skipped);
+            if (n <= 0) { if (input.read() == -1) break; n = 1; }
+            skipped += n;
+        }
+        final long totalLength = length;
+        final long startOffset = start;
+        long remaining = length >= 0 ? length - start : -1;
+        String headers = "HTTP/1.1 " + (start > 0 ? "206 Partial Content" : "200 OK") + "\r\n"
                 + "Content-Type: " + mimeType + "\r\n"
                 + "Content-Disposition: attachment; filename=\"" + fileName.replace("\"", "") + "\"\r\n"
-                + (length >= 0 ? "Content-Length: " + length + "\r\n" : "")
-                + "Access-Control-Allow-Origin: *\r\n"
-                + "Connection: close\r\n\r\n";
+                + "Accept-Ranges: bytes\r\n"
+                + (start > 0 && length >= 0 ? "Content-Range: bytes " + start + "-" + (length - 1) + "/" + length + "\r\n" : "")
+                + (remaining >= 0 ? "Content-Length: " + remaining + "\r\n" : "")
+                + "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n";
         raw.write(headers.getBytes(StandardCharsets.UTF_8));
-        long sent = 0;
+        long sent = start;
+        long startedAt = System.currentTimeMillis();
+        long lastEventAt = 0;
         try (BufferedInputStream in = new BufferedInputStream(input); BufferedOutputStream out = new BufferedOutputStream(raw)) {
             byte[] buf = new byte[256 * 1024];
             int n;
-            while ((n = in.read(buf)) != -1) { out.write(buf, 0, n); sent += n; }
+            while ((n = in.read(buf)) != -1) {
+                out.write(buf, 0, n); sent += n;
+                long now = System.currentTimeMillis();
+                if (now - lastEventAt >= 250 || (totalLength > 0 && sent >= totalLength)) {
+                    lastEventAt = now;
+                    long elapsed = Math.max(1, now - startedAt);
+                    long speed = Math.max(0, sent - startOffset) * 1000L / elapsed;
+                    JSObject progress = new JSObject();
+                    progress.put("bytes", sent); progress.put("total", totalLength);
+                    progress.put("progress", totalLength > 0 ? Math.min(100, sent * 100L / totalLength) : -1);
+                    progress.put("speed", speed);
+                    progress.put("eta", totalLength > 0 && speed > 0 ? Math.max(0, (totalLength - sent) / speed) : -1);
+                    main.post(() -> notifyListeners("transferProgress", progress));
+                }
+            }
             out.flush();
         }
-        // Full download completed successfully -> tell the JS side so it can celebrate.
         final long sentF = sent;
-        final String fnF = fileName;
-        final String mtF = mimeType;
         JSObject ev = new JSObject();
-        ev.put("fileName", fnF);
-        ev.put("size", sentF);
-        ev.put("mimeType", mtF);
+        ev.put("fileName", fileName); ev.put("size", sentF); ev.put("mimeType", mimeType);
         main.post(() -> notifyListeners("fileDownloaded", ev));
     }
-
     private InputStream openUriStream(String uriStr) {
         try {
             if (uriStr == null || uriStr.isEmpty()) return null;
@@ -746,8 +772,7 @@ public class FileServerPlugin extends Plugin {
 
     private HttpRequest readRequest(InputStream raw) throws IOException {
         ByteArrayOutputStream header = new ByteArrayOutputStream();
-        int matched = 0;
-        int b;
+        int matched = 0, b;
         byte[] end = new byte[]{'\r', '\n', '\r', '\n'};
         while ((b = raw.read()) != -1) {
             header.write(b);
@@ -758,21 +783,24 @@ public class FileServerPlugin extends Plugin {
         String[] lines = h.split("\r\n");
         String[] first = lines.length > 0 ? lines[0].split(" ") : new String[]{"GET", "/"};
         long len = 0;
+        String range = null;
         for (String line : lines) {
             int idx = line.indexOf(':');
-            if (idx > 0 && "content-length".equals(line.substring(0, idx).trim().toLowerCase(Locale.US))) {
-                try { len = Long.parseLong(line.substring(idx + 1).trim()); } catch (Exception ignored) {}
+            if (idx <= 0) continue;
+            String key = line.substring(0, idx).trim().toLowerCase(Locale.US);
+            String value = line.substring(idx + 1).trim();
+            if ("content-length".equals(key)) {
+                try { len = Long.parseLong(value); } catch (Exception ignored) {}
+            } else if ("range".equals(key)) {
+                range = value;
             }
         }
         HttpRequest req = new HttpRequest();
         req.method = first.length > 0 ? first[0] : "GET";
         req.path = first.length > 1 ? first[1] : "/";
-        req.contentLength = len;
-        req.input = raw;
-        req.bodyPrefix = new byte[0];
+        req.contentLength = len; req.range = range; req.input = raw; req.bodyPrefix = new byte[0];
         return req;
     }
-
     private void writeResponse(OutputStream out, String status, String type, byte[] body, String extra) throws IOException {
         String headers = "HTTP/1.1 " + status + "\r\n"
                 + "Content-Type: " + type + "\r\n"
@@ -812,6 +840,7 @@ public class FileServerPlugin extends Plugin {
         seenClients.clear();
         try { if (sendServer != null) sendServer.close(); } catch (Exception ignored) {}
         sendServer = null;
+        main.post(() -> TransferService.stop(getContext()));
     }
 
     // Use the token the JS side already published in the QR/mDNS record when it
@@ -937,6 +966,7 @@ public class FileServerPlugin extends Plugin {
         String method;
         String path;
         long contentLength;
+        String range;
         InputStream input;
         byte[] bodyPrefix;
     }

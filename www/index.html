@@ -341,6 +341,7 @@
     .dl-prog-track{height:4px;background:var(--card-bd);border-radius:4px;overflow:hidden}
     .dl-prog-fill{height:100%;width:0;background:var(--green);border-radius:4px;transition:width .3s ease}
     .dl-prog-lbl{font-size:11px;color:var(--t3)}
+    .dl-prog-actions{display:flex;gap:8px}.dl-prog-actions .btn{flex:1}
     .samsung-warn{display:none;background:rgba(255,180,0,.1);border:1px solid rgba(255,180,0,.3);border-radius:var(--r3);padding:12px 14px;font-size:12px;color:#ffd54f;line-height:1.6;width:100%}
     .samsung-warn.on{display:block}
     .samsung-warn strong{color:#ffb300}
@@ -774,6 +775,10 @@
         </div>
         <div class="dl-prog-track"><div class="dl-prog-fill" id="dl-prog-fill"></div></div>
         <div class="dl-prog-lbl" id="dl-prog-lbl">กำลังโหลด...</div>
+        <div class="dl-prog-actions">
+          <button class="btn btn-danger btn-sm" id="btn-dl-cancel" type="button">ยกเลิก</button>
+          <button class="btn btn-green btn-sm" id="btn-dl-resume" type="button" style="display:none">ดาวน์โหลดต่อ</button>
+        </div>
       </div>
       <div class="card" id="clip-recv-card" style="display:none">
         <div class="card-head">
@@ -1481,14 +1486,17 @@ function startNative(file){
     }
     openInChrome(scannedURL);
   }
-  function startDownload(DL,url,fileName){
+  var _activeDownload=null;
+  function startDownload(DL,url,fileName,resume){
     toast('⬇️ เริ่มดาวน์โหลดแล้ว: '+fileName);setBadge('Downloading',true);
-    var progCard=$('dl-prog-card'),progName=$('dl-prog-name'),progFill=$('dl-prog-fill'),progLbl=$('dl-prog-lbl');
-    if(progCard){progCard.classList.add('on');if(progName)progName.textContent=fileName;if(progFill)progFill.style.width='0%';if(progLbl)progLbl.textContent='กำลังเชื่อมต่อ...';}
-    var fakeProgress=0;
-    var fakeTimer=setInterval(function(){fakeProgress=Math.min(fakeProgress+2,85);if(progFill)progFill.style.width=fakeProgress+'%';if(progLbl)progLbl.textContent='กำลังโหลด... '+fakeProgress+'%';},400);
-    DL.downloadFile({url:url,fileName:fileName}).then(function(res){clearInterval(fakeTimer);if(progLbl)progLbl.textContent='กำลังบันทึก...';toast('📥 '+(res.message||'กำลังโหลด...'));}).catch(function(e){clearInterval(fakeTimer);if(progCard)progCard.classList.remove('on');setBadge('Error');showErr('เชื่อมต่อเครื่องส่งไม่ได้ — ตรวจว่าอยู่ Wi-Fi เดียวกัน, ไม่ใช่ Guest Wi-Fi หรือใช้ Hotspot');toast('❌ เริ่มดาวน์โหลดไม่ได้: '+(e.message||e));});
+    _activeDownload={DL:DL,url:url,fileName:fileName};
+    var progCard=$('dl-prog-card'),progName=$('dl-prog-name'),progFill=$('dl-prog-fill'),progLbl=$('dl-prog-lbl'),resumeBtn=$('btn-dl-resume'),cancelBtn=$('btn-dl-cancel');
+    if(progCard){progCard.classList.add('on');if(progName)progName.textContent=fileName;if(!resume&&progFill)progFill.style.width='0%';if(progLbl)progLbl.textContent=resume?'กำลังดาวน์โหลดต่อ...':'กำลังเชื่อมต่อ...';if(resumeBtn)resumeBtn.style.display='none';if(cancelBtn)cancelBtn.style.display='';}
+    var fn=resume&&DL.resumeDownload?DL.resumeDownload.bind(DL):DL.downloadFile.bind(DL);
+    fn({url:url,fileName:fileName}).then(function(res){if(progLbl)progLbl.textContent='บันทึกสำเร็จ';toast('📥 '+(res.message||'โหลดสำเร็จ'));}).catch(function(e){var msg=e&&(e.message||String(e))||'';if(msg.toLowerCase().indexOf('cancel')>-1)return;setBadge('Error');if(progLbl)progLbl.textContent='การเชื่อมต่อหยุด — กดดาวน์โหลดต่อ';if(resumeBtn)resumeBtn.style.display='';if(cancelBtn)cancelBtn.style.display='none';showErr('การรับไฟล์หยุดชั่วคราว สามารถกดดาวน์โหลดต่อได้');});
   }
+  function cancelActiveDownload(){if(!_activeDownload)return;var d=_activeDownload;if(d.DL.cancelDownload)d.DL.cancelDownload().catch(function(){});var b=$('btn-dl-resume');if(b)b.style.display='';var c=$('btn-dl-cancel');if(c)c.style.display='none';var l=$('dl-prog-lbl');if(l)l.textContent='หยุดแล้ว — กดดาวน์โหลดต่อ';setBadge('Paused');}
+  function resumeActiveDownload(){if(!_activeDownload)return;startDownload(_activeDownload.DL,_activeDownload.url,_activeDownload.fileName,true);}
   function openInBrowser(){if(!scannedURL){toast('ยังไม่มี URL');return;}openInChrome(scannedURL);}
   function subnetPrefix(cb){recvGetIP().then(function(ip){var m=ip&&ip.match(/^(\d+\.\d+\.\d+\.)\d+$/);cb(m?m[1]:'192.168.1.');}).catch(function(){cb('192.168.1.');});}
   function startDiscover(){var list=$('disc-list');list.innerHTML='<div class="disc-empty">Scanning...</div>';setBadge('Scanning');subnetPrefix(function(prefix){var found=[],done=0,total=254;for(var i=1;i<=254;i++){(function(ip){var url='http://'+prefix+ip+':8080/api/ping',ctrl=null,timer=null;try{ctrl=new AbortController();timer=setTimeout(function(){ctrl.abort();},900);}catch(e){}fetch(url,ctrl?{signal:ctrl.signal}:{}).then(function(r){return r.json();}).then(function(d){if(timer)clearTimeout(timer);if(d&&d.app==='goodfile'){found.push({ip:ip,name:d.device||ip,file:d.fileName||'?',url:'http://'+prefix+ip+':8080/download'});renderDisc(found);}}).catch(function(){if(timer)clearTimeout(timer);}).finally(function(){done++;if(done===total)setBadge(found.length?found.length+' found':'Ready');});})(i);}});}
@@ -1845,6 +1853,7 @@ function startNative(file){
     var FS=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.FileServer;
     if(FS&&FS.addListener){
       try{FS.addListener('fileDownloaded',onFileDownloaded);}catch(e){}
+      try{FS.addListener('transferProgress',function(d){var p=d&&d.progress;if(p>=0)setProgress('กำลังส่ง '+p+'% · '+fmt(d.bytes||0)+' / '+fmt(d.total||0),p);setBadge('Sending',true);});}catch(e){}
       // The receiver gets a 401 and we would never hear about it. Surface it to
       // the sender -- they are the only one who can hand over a working QR.
       try{FS.addListener('unauthorizedScan',onUnauthorizedScan);}catch(e){}
@@ -2193,6 +2202,8 @@ function startNative(file){
     on('btn-scan','click',startScan);
     on('btn-stop-scan-fs','click',stopScan);
     on('btn-dl','click',downloadScanned);
+    on('btn-dl-cancel','click',cancelActiveDownload);
+    on('btn-dl-resume','click',resumeActiveDownload);
     on('btn-dl-browser','click',openInBrowser);
     on('btn-open-url','click',openURL);
     on('in-qr-scan','change',function(){var f=this.files[0];this.value='';if(f)decodeQRFromFile(f,function(url){if(!url.startsWith('http')){toast('❌ QR ไม่ใช่ URL');return;}scannedURL=url;$('scan-url').textContent=url;$('scan-result').classList.add('on');clipShowRecvCard();toast('✅ สแกนสำเร็จ');});});
@@ -2207,9 +2218,11 @@ function startNative(file){
     var DL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Downloader;
     if(DL&&DL.addListener){
       try{
-        DL.addListener('downloadProgress',function(d){var fill=$('dl-prog-fill'),lbl=$('dl-prog-lbl');if(fill)fill.style.width=(d.progress||0)+'%';if(lbl)lbl.textContent='โหลด '+(d.progress||0)+'%';});
-        DL.addListener('downloadComplete',function(d){var card=$('dl-prog-card');if(card)card.classList.remove('on');setBadge('Done');toast('✅ โหลดสำเร็จ: '+(d.fileName||'ไฟล์'));histAdd({type:'recv',name:d.fileName||'ไฟล์',size:d.size||0,ip:'HTTP'});if(typeof launchConfetti==='function')launchConfetti();});
-        DL.addListener('downloadError',function(d){var card=$('dl-prog-card');if(card)card.classList.remove('on');setBadge('Error');toast('❌ โหลดล้มเหลว: '+(d.error||''));});
+        DL.addListener('downloadStarted',function(d){var l=$('dl-prog-lbl');if(l)l.textContent=(d.resumedBytes>0?'ดาวน์โหลดต่อจาก '+fmt(d.resumedBytes):'เริ่มรับไฟล์แล้ว');});
+        DL.addListener('downloadProgress',function(d){var fill=$('dl-prog-fill'),lbl=$('dl-prog-lbl'),p=d.progress||0;if(fill&&p>=0)fill.style.width=p+'%';if(lbl)lbl.textContent=(p>=0?p+'% · ':'')+fmt(d.bytes||0)+(d.total>0?' / '+fmt(d.total):'')+(d.speed>0?' · '+fmtSpd(d.speed):'')+(d.eta>=0?' · เหลือ '+d.eta+' วินาที':'');});
+        DL.addListener('downloadComplete',function(d){var fill=$('dl-prog-fill'),lbl=$('dl-prog-lbl'),cancel=$('btn-dl-cancel'),resume=$('btn-dl-resume');if(fill)fill.style.width='100%';if(lbl)lbl.textContent='100% · บันทึกสำเร็จ';if(cancel)cancel.style.display='none';if(resume)resume.style.display='none';setBadge('Done');toast('✅ โหลดสำเร็จ: '+(d.fileName||'ไฟล์'));histAdd({type:'recv',name:d.fileName||'ไฟล์',size:d.size||0,ip:'HTTP'});if(typeof launchConfetti==='function')launchConfetti();});
+        DL.addListener('downloadError',function(d){var lbl=$('dl-prog-lbl'),resume=$('btn-dl-resume'),cancel=$('btn-dl-cancel');if(lbl)lbl.textContent=d.resumable?'หยุดชั่วคราว — กดดาวน์โหลดต่อ':'โหลดล้มเหลว: '+(d.error||'');if(resume)resume.style.display=d.resumable?'':'none';if(cancel)cancel.style.display='none';setBadge('Error');});
+        DL.addListener('downloadCancelled',function(){var lbl=$('dl-prog-lbl'),resume=$('btn-dl-resume');if(lbl)lbl.textContent='หยุดแล้ว — กดดาวน์โหลดต่อ';if(resume)resume.style.display='';});
       }catch(e){}
     }
   }

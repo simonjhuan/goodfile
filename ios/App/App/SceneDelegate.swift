@@ -26,5 +26,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 final class AppBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(FileServerPlugin())
+        bridge?.registerPluginInstance(DownloaderPlugin())
     }
 }
