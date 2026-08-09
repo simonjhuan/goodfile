@@ -121,12 +121,12 @@ function startFileServer(fileName, mimeType, buffer) {
     });
 
     fileServer.listen(8080, '0.0.0.0', () => {
-      resolve({ url: `http://${ip}:8080`, ip });
+      resolve({ url: `http://${ip}:8080/download`, ip });
     });
 
     fileServer.on('error', () => {
       fileServer.listen(8081, '0.0.0.0', () => {
-        resolve({ url: `http://${ip}:8081`, ip });
+        resolve({ url: `http://${ip}:8081/download`, ip });
       });
     });
   });
