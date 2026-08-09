@@ -47,6 +47,9 @@ public class DownloaderPlugin extends Plugin {
                 conn.connect();
                 int code = conn.getResponseCode();
                 if (code < 200 || code >= 300) throw new Exception("HTTP " + code);
+                JSObject started = new JSObject();
+                started.put("fileName", target.displayName);
+                notifyListeners("downloadStarted", started);
                 long total = conn.getContentLengthLong();
                 long done = 0;
                 byte[] buf = new byte[256 * 1024];

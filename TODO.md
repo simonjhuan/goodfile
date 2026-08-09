@@ -1,15 +1,14 @@
-# Pending fixes
+# Completed mobile transfer fixes
 
 ## iOS to Android download start
 
-When Android scans a QR code from an iOS sender, the receive flow checks
-`/api/ping` before starting the download. The iOS file server currently only
-serves `/download`, so the check fails and the user receives no immediate
-"download started" status.
+Completed on 2026-08-09:
 
-Planned fix:
+1. iOS now exposes a CORS-enabled `/api/ping` health check without revealing file metadata.
+2. Android starts the download immediately after a QR scan instead of waiting for a preflight check.
+3. The receiver shows a starting/progress state and keeps connection errors inside the app instead of opening Chrome.
+4. iOS sends larger file chunks for better transfer throughput.
 
-1. Add an open, CORS-enabled `/api/ping` response to the iOS file server.
-2. Start Android's download immediately after scanning, instead of blocking on
-   the preflight check.
-3. Show a persistent "download started" status and progress immediately.
+## Network safety note
+
+Downloads remain protected by the one-time token in the QR URL. A Wi-Fi router that isolates devices (Guest Wi-Fi or AP isolation) cannot be bypassed by the app; the app now explains this clearly when it happens.

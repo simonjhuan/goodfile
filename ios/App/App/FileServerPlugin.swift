@@ -105,6 +105,12 @@ final class FileServerPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
+        // This endpoint reveals no file metadata. It only confirms that the sender is reachable.
+        if components.path == "/api/ping" {
+            send(status: "200 OK", body: Data(), on: connection)
+            return
+        }
+
         guard components.path == "/download" else {
             send(status: "404 Not Found", body: Data(), on: connection)
             return
@@ -131,7 +137,7 @@ final class FileServerPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func sendNextChunk(from handle: FileHandle, on connection: NWConnection) {
-        let chunk = handle.readData(ofLength: 64 * 1024)
+        let chunk = handle.readData(ofLength: 256 * 1024)
         guard !chunk.isEmpty else {
             handle.closeFile()
             connection.cancel()
@@ -150,7 +156,7 @@ final class FileServerPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func send(status: String, body: Data, on connection: NWConnection) {
-        let header = "HTTP/1.1 \(status)\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n"
+        let header = "HTTP/1.1 \(status)\r\nContent-Length: \(body.count)\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
         connection.send(content: Data(header.utf8) + body, completion: .contentProcessed { _ in connection.cancel() })
     }
 
