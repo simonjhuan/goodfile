@@ -268,7 +268,10 @@
   }
 
   /* ═══ MAIN ═══ */
+  // Electron has its own local HTTP server. Keep the base desktop transfer flow.
+  var baseProcessFile = window.processFile;
   window.processFile = function(file){
+    if(window.electronAPI && baseProcessFile){ return baseProcessFile(file); }
     if(!file){if(window.toast) window.toast('No file');return;}
     dlogReset();
     dlog('📂 File: '+file.name);
