@@ -1200,7 +1200,7 @@
   function onFolder(input){var files=Array.from(input.files);input.value='';if(!files.length)return;var folderName=files[0].webkitRelativePath.split('/')[0]||'folder';loadJSZip(function(){var zip=new JSZip();files.forEach(function(f){zip.file(f.webkitRelativePath,f);});setProgress('Zipping folder...',20);zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}}).then(function(blob){var zipFile=new File([blob],folderName+'.zip',{type:'application/zip'});celebrate('file','Folder selected!',folderName+' is ready to send');processFile(zipFile);});});}
   function loadJSZip(cb){if(window.JSZip){cb();return;}var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=cb;document.head.appendChild(s);}
   function sendText(){var text=$('paste-ta').value.trim();if(!text){toast('ไม่มีข้อความ');return;}processFile(new File([text],'shared-text.txt',{type:'text/plain'}));$('paste-wrap').classList.remove('on');}
-  function processFile(file){curFile=file;if(_isIOS&&!getPlugin()){iosGoP2P(file);return;}showErr(null);$('prog').classList.add('on');$('prog-ic').textContent=fileEmoji(file.name);$('prog-name').textContent=file.name;$('prog-size').textContent=fmt(file.size);showXbar(file.name,fileEmoji(file.name),file.size);setProgress('Starting...',30);
+  function processFile(file){curFile=file;if(window.electronAPI){startDesktop(file);return;}if(_isIOS&&!getPlugin()){iosGoP2P(file);return;}showErr(null);$('prog').classList.add('on');$('prog-ic').textContent=fileEmoji(file.name);$('prog-name').textContent=file.name;$('prog-size').textContent=fmt(file.size);showXbar(file.name,fileEmoji(file.name),file.size);setProgress('Starting...',30);
     if(getPlugin()){startNative(file);return;}
     if(isNative()){
       // Native app but the plugin bridge isn't wired up yet (cold-start race) --
@@ -1216,6 +1216,20 @@
     previewMode(file);
   }
 
+  function startDesktop(file){
+    showErr(null);$('prog').classList.add('on');$('prog-ic').textContent=fileEmoji(file.name);$('prog-name').textContent=file.name;$('prog-size').textContent=fmt(file.size);showXbar(file.name,fileEmoji(file.name),file.size);setProgress('Preparing file...',40);setBadge('Starting');
+    var reader=new FileReader();
+    reader.onload=function(e){
+      setProgress('Opening server...',70);
+      window.electronAPI.serveBuffer(file.name,file.type||'application/octet-stream',e.target.result).then(function(res){
+        onServerReady(res.url,res.ip,file);
+      }).catch(function(err){
+        showErr('Server error: '+(err&&err.message||err));setProgress('Failed',0);setBadge('Error');hideXbar();
+      });
+    };
+    reader.onerror=function(){showErr('Unable to read file');setProgress('Failed',0);setBadge('Error');hideXbar();};
+    reader.readAsArrayBuffer(file);
+  }
   function iosGoP2P(file){
     if(!file)return;
     var files=fileQueue.length>0?fileQueue.concat([]):[file];
@@ -1446,7 +1460,7 @@ function startNative(file){
   function buildQR(url,file){var wrap=$('qr-wrap');wrap.innerHTML='';var qrFrame=document.createElement('div');qrFrame.className='qr-frame';var qrDiv=document.createElement('div');qrFrame.appendChild(qrDiv);wrap.appendChild(qrFrame);var fname=document.createElement('div');fname.className='qr-fn';fname.textContent=file?file.name:'File';wrap.appendChild(fname);var fsize=document.createElement('div');fsize.className='qr-fs';fsize.textContent=file?fmt(file.size):'';wrap.appendChild(fsize);var urlBox=document.createElement('div');urlBox.className='qr-url';urlBox.textContent=url;urlBox.addEventListener('click',function(){copyURL(url);});wrap.appendChild(urlBox);var shareBtn=document.createElement('button');shareBtn.className='qr-share-btn';shareBtn.type='button';shareBtn.textContent='Share Link';shareBtn.addEventListener('click',doShare);wrap.appendChild(shareBtn);qrDiv.innerHTML='<div style="width:240px;height:240px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#aaa">Loading QR...</div>';function makeQR(a){a=a||0;if(window.QRCode){qrDiv.innerHTML='';try{new QRCode(qrDiv,{text:url,width:240,height:240,colorDark:'#000000',colorLight:'#ffffff',correctLevel:0});}catch(e){qrDiv.textContent=url;}}else if(a<40){setTimeout(function(){makeQR(a+1);},50);}else{qrDiv.textContent=url;}}makeQR();}
   function copyURL(url){var u=url||srvURL;if(!u)return;try{if(navigator.clipboard){navigator.clipboard.writeText(u).then(function(){toast('Copy URL แล้ว');}).catch(function(){toast(u);});}else{toast(u);}}catch(e){toast(u);}}
   function doShare(){if(!srvURL)return;if(navigator.share){navigator.share({title:'goodfile',url:srvURL}).catch(function(){});}else{copyURL(srvURL);}}
-  function doStop(){if(getPlugin()){try{getPlugin().stopServer();}catch(e){}}nsdUnregister();
+  function doStop(){if(window.electronAPI){try{window.electronAPI.stopServer();}catch(e){}}if(getPlugin()){try{getPlugin().stopServer();}catch(e){}}nsdUnregister();
     if(_waitTimer){clearTimeout(_waitTimer);_waitTimer=null;}
     _clientSeen=false;_waitURL=null;qrTabAvail(false);
     var _ch=$('conn-help');if(_ch)_ch.classList.remove('on');

@@ -23,7 +23,8 @@
       "output": "dist"
     },
     "files": [
-      "desktop/**/*"
+      "desktop/**/*",
+      "www/**/*"
     ],
     "win": {
       "target": [
