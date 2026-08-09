@@ -2,12 +2,14 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const http = require('http');
 const os = require('os');
+const crypto = require('crypto');
 
 let mainWindow;
 let fileServer = null;
 let servedBuffer = null;
 let servedFileName = '';
 let servedMimeType = '';
+let servedToken = '';
 
 // Windows boxes are full of virtual adapters (VirtualBox, VMware, WSL, Hyper-V,
 // VPNs) that answer before the real WiFi/Ethernet card. Returning one of those
@@ -61,19 +63,26 @@ function startFileServer(fileName, mimeType, buffer) {
     servedBuffer = Buffer.from(buffer);
     servedFileName = fileName;
     servedMimeType = mimeType || 'application/octet-stream';
+    servedToken = crypto.randomBytes(16).toString('hex');
 
     const ip = getLanIP();
 
     fileServer = http.createServer((req, res) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
+      const requestUrl = new URL(req.url, 'http://localhost');
 
-      if (req.url === '/api/ping') {
+      if (requestUrl.pathname === '/api/ping') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ app: 'goodfile', device: os.hostname(), fileName: servedFileName }));
         return;
       }
 
-      if (req.url === '/download' || req.url === '/api/download') {
+      if (requestUrl.pathname === '/download' || requestUrl.pathname === '/api/download') {
+        if (requestUrl.searchParams.get('t') !== servedToken) {
+          res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Invalid or expired download link');
+          return;
+        }
         res.writeHead(200, {
           'Content-Type': servedMimeType,
           'Content-Disposition': `attachment; filename="${encodeURIComponent(servedFileName)}"`,
@@ -113,7 +122,7 @@ function startFileServer(fileName, mimeType, buffer) {
     <div class="icon">📦</div>
     <h1>GOODFILE</h1>
     <p>${servedFileName}</p>
-    <a href="/download">⬇ Download Now</a>
+    <a href="/download?t=${servedToken}">⬇ Download Now</a>
     <div class="size">${(servedBuffer.length / 1048576).toFixed(2)} MB</div>
   </div>
 </body>
@@ -121,12 +130,12 @@ function startFileServer(fileName, mimeType, buffer) {
     });
 
     fileServer.listen(8080, '0.0.0.0', () => {
-      resolve({ url: `http://${ip}:8080`, ip });
+      resolve({ url: `http://${ip}:8080/download?t=${servedToken}`, ip });
     });
 
     fileServer.on('error', () => {
       fileServer.listen(8081, '0.0.0.0', () => {
-        resolve({ url: `http://${ip}:8081`, ip });
+        resolve({ url: `http://${ip}:8081/download?t=${servedToken}`, ip });
       });
     });
   });
