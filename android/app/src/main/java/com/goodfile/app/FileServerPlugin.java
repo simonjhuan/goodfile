@@ -64,6 +64,7 @@ public class FileServerPlugin extends Plugin {
     private final java.util.Set<String> seenClients =
             java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
     private volatile String token;  // access token for the active send/gallery server (null = open)
+    private volatile String receiveToken; // protects the PC -> Android upload endpoint
 
     @PluginMethod
     public void getIP(PluginCall call) {
@@ -169,7 +170,9 @@ public class FileServerPlugin extends Plugin {
                 main.post(() -> TransferService.start(getContext(), fileName));
                 String ip = getLocalIp();
                 JSObject ret = new JSObject();
-                ret.put("url", "http://" + ip + ":" + port + "/download?t=" + tok);
+                // QR scanners open a browser-friendly landing page. The actual
+                // file endpoint remains /download for backward compatibility.
+                ret.put("url", "http://" + ip + ":" + port + "/?t=" + tok);
                 ret.put("ip", ip);
                 ret.put("token", tok);
                 main.post(() -> call.resolve(ret));
@@ -238,6 +241,9 @@ public class FileServerPlugin extends Plugin {
     public void startReceiveServer(PluginCall call) {
         int port = call.getInt("port", 8081);
         stopReceiveServer();
+        String requestedToken = call.getString("token", "");
+        receiveToken = requestedToken == null || requestedToken.isEmpty() ? genReceiveToken() : requestedToken;
+        final String activeReceiveToken = receiveToken;
         pool.execute(() -> {
             try {
                 receiveServer = new ServerSocket(port);
@@ -245,7 +251,8 @@ public class FileServerPlugin extends Plugin {
                 JSObject ret = new JSObject();
                 ret.put("ok", true);
                 ret.put("ip", getLocalIp());
-                ret.put("url", "http://" + getLocalIp() + ":" + port + "/upload");
+                ret.put("url", "http://" + getLocalIp() + ":" + port + "/upload?t=" + activeReceiveToken);
+                ret.put("token", activeReceiveToken);
                 main.post(() -> call.resolve(ret));
                 while (receiveRunning) {
                     Socket socket = receiveServer.accept();
@@ -450,6 +457,11 @@ public class FileServerPlugin extends Plugin {
                 writeResponse(s.getOutputStream(), "200 OK", "text/html; charset=utf-8", page, "Cache-Control: no-store\r\n");
                 return;
             }
+            if (gallery == null && base.equals("/")) {
+                byte[] page = downloadPage().getBytes(StandardCharsets.UTF_8);
+                writeResponse(s.getOutputStream(), "200 OK", "text/html; charset=utf-8", page, "Cache-Control: no-store\r\n");
+                return;
+            }
             if (base.startsWith("/download")) {
                 streamFile(s.getOutputStream(), req.range);
                 return;
@@ -476,6 +488,12 @@ public class FileServerPlugin extends Plugin {
                 body.put("app", "goodfile");
                 body.put("device", android.os.Build.MODEL);
                 writeResponse(s.getOutputStream(), "200 OK", "application/json", body.toString().getBytes(StandardCharsets.UTF_8), null);
+                return;
+            }
+            if (!receiveTokenOk(req.path)) {
+                writeResponse(s.getOutputStream(), "401 Unauthorized", "text/plain; charset=utf-8",
+                        "Invalid or expired upload link".getBytes(StandardCharsets.UTF_8),
+                        "Cache-Control: no-store\r\n");
                 return;
             }
             if ("GET".equals(req.method) && (req.path.equals("/") || req.path.startsWith("/upload"))) {
@@ -565,6 +583,33 @@ public class FileServerPlugin extends Plugin {
                 + "</div></body></html>";
     }
 
+    /**
+     * Landing page for ordinary QR scanners on Windows, macOS, and Linux.
+     * Receiving only requires a browser; GoodFile is not installed on the PC.
+     */
+    private String downloadPage() {
+        String safeFileName = escapeHtml(fileName == null || fileName.isEmpty() ? "goodfile_download" : fileName);
+        String safeSize = fileSize >= 0 ? humanSize(fileSize) : "Ready to download";
+        String safeToken = token == null ? "" : token.replaceAll("[^A-Za-z0-9_-]", "");
+        return "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+                + "<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>"
+                + "<meta name='theme-color' content='#0A0F1E'><title>Receive with goodfile</title><style>"
+                + ":root{color-scheme:dark;--bg:#0A0F1E;--card:#111827;--line:rgba(130,177,255,.20);--text:#F0F4FF;--muted:rgba(240,244,255,.62);--blue:#2979FF;--blue2:#1565C0}"
+                + "*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 18% 0,rgba(41,121,255,.24),transparent 38%),radial-gradient(circle at 88% 18%,rgba(24,119,242,.14),transparent 34%),var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;display:grid;place-items:center;padding:24px}"
+                + ".card{width:min(440px,100%);background:rgba(17,24,39,.94);border:1px solid var(--line);border-radius:26px;padding:30px;box-shadow:0 24px 70px rgba(0,0,0,.5),0 0 60px rgba(41,121,255,.09);text-align:center}"
+                + ".mark{width:70px;height:70px;margin:0 auto 18px;border-radius:21px;background:linear-gradient(145deg,var(--blue),var(--blue2));display:grid;place-items:center;font-size:32px;box-shadow:0 12px 28px rgba(41,121,255,.35)}"
+                + ".brand{font-size:13px;font-weight:800;letter-spacing:1.7px;color:#82B1FF;text-transform:uppercase}h1{font-size:25px;margin:8px 0 10px}.name{font-size:16px;font-weight:650;word-break:break-word}.size{font-size:13px;color:var(--muted);margin-top:5px}"
+                + ".download{display:block;margin-top:24px;padding:15px 18px;border-radius:15px;background:linear-gradient(145deg,var(--blue),var(--blue2));color:#fff;text-decoration:none;font-size:17px;font-weight:800;box-shadow:0 8px 24px rgba(41,121,255,.25)}.download:hover{filter:brightness(1.07)}"
+                + ".note{font-size:13px;color:var(--muted);line-height:1.55;margin:18px 0 0}.ok{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:18px}.pill{border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:11px;color:var(--muted)}"
+                + "</style></head><body><main class='card'>"
+                + "<div class='mark'>&darr;</div><div class='brand'>goodfile</div><h1>File ready to download</h1>"
+                + "<div class='name'>" + safeFileName + "</div><div class='size'>" + safeSize + "</div>"
+                + "<a class='download' href='/download?t=" + safeToken + "' download>Download file</a>"
+                + "<p class='note'>No GoodFile installation is needed on this device.<br>Keep the sending phone on this screen until the download finishes.</p>"
+                + "<div class='ok'><span class='pill'>Same Wi-Fi</span><span class='pill'>Direct transfer</span><span class='pill'>No cloud</span></div>"
+                + "</main></body></html>";
+    }
+
     private String uploadPage() {
         return "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
                 + "<meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover'>"
@@ -605,11 +650,11 @@ public class FileServerPlugin extends Plugin {
                 + "<div class='foot'><span class='tag'>Wi-Fi ภายใน</span><span class='tag'>ไม่ผ่านคลาวด์</span><span class='tag'>ปลอดภัย</span></div>"
                 + referralBanner(false)
                 + "</div><script>"
-                + "var f=document.getElementById('f'),sb=document.getElementById('send'),ag=document.getElementById('again'),cl=document.getElementById('cell'),nm=document.getElementById('name'),sz=document.getElementById('size'),st=document.getElementById('status'),pb=document.getElementById('bar'),pc=document.getElementById('pct'),ps=document.getElementById('pstat'),pr=document.getElementById('prog'),pl=document.getElementById('picklbl'),ht=document.getElementById('hint');"
+                + "var f=document.getElementById('f'),sb=document.getElementById('send'),ag=document.getElementById('again'),cl=document.getElementById('cell'),nm=document.getElementById('name'),sz=document.getElementById('size'),st=document.getElementById('status'),pb=document.getElementById('bar'),pc=document.getElementById('pct'),ps=document.getElementById('pstat'),pr=document.getElementById('prog'),pl=document.getElementById('picklbl'),ht=document.getElementById('hint'),tk=new URLSearchParams(location.search).get('t')||'';"
                 + "function fmt(n){if(!n)return'0 B';var u=['B','KB','MB','GB'],i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return(n>=10||i==0?Math.round(n):n.toFixed(1))+' '+u[i]}"
                 + "f.onchange=function(){var file=f.files[0];sb.disabled=!file;pb.style.width='0%';pc.textContent='0%';pr.className='prog';st.className='status';ag.style.display='none';sb.style.display='block';if(file){cl.className='cell on';nm.textContent=file.name;sz.textContent=fmt(file.size);pl.textContent='พร้อมส่ง';ht.textContent='แตะปุ่มส่งไฟล์ด้านล่าง';st.textContent='พร้อมส่ง'}else{cl.className='cell';st.textContent='เชื่อมต่อผ่าน Wi-Fi เดียวกัน';pl.textContent='เลือกไฟล์';ht.textContent='แตะเพื่อเลือกไฟล์'}};"
                 + "ag.onclick=function(){f.value='';cl.className='cell';pr.className='prog';ag.style.display='none';sb.style.display='block';sb.disabled=true;pl.textContent='เลือกไฟล์';ht.textContent='แตะเพื่อเลือกไฟล์';st.className='status';st.textContent='เชื่อมต่อผ่าน Wi-Fi เดียวกัน';pb.style.width='0%';pc.textContent='0%'};"
-                + "sb.onclick=function(){var file=f.files[0];if(!file)return;sb.disabled=true;pr.className='prog on';st.className='status';st.textContent='กำลังส่ง';ps.textContent='กำลังเชื่อมต่อ';var x=new XMLHttpRequest();x.open('POST','/upload?name='+encodeURIComponent(file.name));x.setRequestHeader('Content-Type',file.type||'application/octet-stream');x.upload.onprogress=function(e){if(e.lengthComputable){var p=Math.round(e.loaded*100/e.total);pb.style.width=p+'%';pc.textContent=p+'%';ps.textContent=fmt(e.loaded)+' / '+fmt(e.total)}};x.onload=function(){pb.style.width='100%';pc.textContent='100%';if(x.status>=200&&x.status<300){st.className='status ok';st.textContent='ส่งสำเร็จ ปิดหน้านี้ได้เลย';ps.textContent='เสร็จ';sb.style.display='none';ag.style.display='block';pl.textContent='ส่งแล้ว'}else{sb.disabled=false;st.className='status err';st.textContent='ส่งไม่สำเร็จ: HTTP '+x.status;ps.textContent='ผิดพลาด'}};x.onerror=function(){sb.disabled=false;st.className='status err';st.textContent='เชื่อมต่อเครื่องรับไม่ได้';ps.textContent='เชื่อมต่อผิดพลาด'};x.send(file)};"
+                + "sb.onclick=function(){var file=f.files[0];if(!file)return;sb.disabled=true;pr.className='prog on';st.className='status';st.textContent='กำลังส่ง';ps.textContent='กำลังเชื่อมต่อ';var x=new XMLHttpRequest();x.open('POST','/upload?name='+encodeURIComponent(file.name)+'&t='+encodeURIComponent(tk));x.setRequestHeader('Content-Type',file.type||'application/octet-stream');x.upload.onprogress=function(e){if(e.lengthComputable){var p=Math.round(e.loaded*100/e.total);pb.style.width=p+'%';pc.textContent=p+'%';ps.textContent=fmt(e.loaded)+' / '+fmt(e.total)}};x.onload=function(){pb.style.width='100%';pc.textContent='100%';if(x.status>=200&&x.status<300){st.className='status ok';st.textContent='ส่งสำเร็จ ปิดหน้านี้ได้เลย';ps.textContent='เสร็จ';sb.style.display='none';ag.style.display='block';pl.textContent='ส่งแล้ว'}else{sb.disabled=false;st.className='status err';st.textContent='ส่งไม่สำเร็จ: HTTP '+x.status;ps.textContent='ผิดพลาด'}};x.onerror=function(){sb.disabled=false;st.className='status err';st.textContent='เชื่อมต่อเครื่องรับไม่ได้';ps.textContent='เชื่อมต่อผิดพลาด'};x.send(file)};"
                 + "(function(){var D={'ส่งไฟล์ฟรี ไม่ต้องลงแอปฝั่งรับ':'Send files free — no app needed to receive','เปิดด้วย goodfile — แตะติดตั้ง':'Open with goodfile — tap to install','โหลดแอป':'Get app','ส่งไฟล์เข้าเครื่องนี้':'Send a file to this device','แตะเพื่อเลือกไฟล์':'Tap to choose a file','เลือกไฟล์':'Choose a file','แตะปุ่มส่งไฟล์ด้านล่าง':'Tap Send below','พร้อมส่ง':'Ready to send','เชื่อมต่อผ่าน Wi-Fi เดียวกัน':'Connected over the same Wi-Fi','ส่งไฟล์อื่น':'Send another','ส่งไฟล์':'Send file','กำลังเตรียม':'Preparing','Wi-Fi ภายใน':'Local Wi-Fi','ไม่ผ่านคลาวด์':'No cloud','ปลอดภัย':'Private','กำลังส่ง':'Sending','กำลังเชื่อมต่อ':'Connecting','ส่งสำเร็จ ปิดหน้านี้ได้เลย':'Sent - you can close this page','เสร็จ':'Done','ส่งแล้ว':'Sent','ส่งไม่สำเร็จ: HTTP ':'Failed: HTTP ','เชื่อมต่อเครื่องรับไม่ได้':'Cannot reach the receiver','เชื่อมต่อผิดพลาด':'Connection error','ผิดพลาด':'Error'};"
                 + "var lang='en';try{var sv=localStorage.getItem('gf_lang');if(sv==='en'||sv==='th')lang=sv;}catch(e){}"
                 + "var keys=Object.keys(D).sort(function(a,b){return b.length-a.length;});var re=new RegExp(keys.join('|'),'g');"
@@ -866,10 +911,24 @@ public class FileServerPlugin extends Plugin {
         return tk.equals(queryParam(path, "t"));
     }
 
+    private boolean receiveTokenOk(String path) {
+        String tk = receiveToken;
+        return tk != null && !tk.isEmpty() && tk.equals(queryParam(path, "t"));
+    }
+
+    private String genReceiveToken() {
+        byte[] bytes = new byte[16];
+        new java.security.SecureRandom().nextBytes(bytes);
+        StringBuilder value = new StringBuilder();
+        for (byte item : bytes) value.append(String.format("%02x", item));
+        return value.toString();
+    }
+
     private void stopReceiveServer() {
         receiveRunning = false;
         try { if (receiveServer != null) receiveServer.close(); } catch (Exception ignored) {}
         receiveServer = null;
+        receiveToken = null;
     }
 
     // Local file transfer only works over Wi-Fi, so we must return the Wi-Fi
@@ -954,6 +1013,27 @@ public class FileServerPlugin extends Plugin {
     private String safeName(String name) {
         if (name == null) return "";
         return name.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
+    private String humanSize(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        final String[] units = { "KB", "MB", "GB", "TB" };
+        double value = bytes;
+        int unit = -1;
+        do {
+            value /= 1024.0;
+            unit++;
+        } while (value >= 1024.0 && unit < units.length - 1);
+        return String.format(Locale.US, value >= 10 ? "%.0f %s" : "%.1f %s", value, units[unit]);
     }
 
     private String guessMime(String name) {

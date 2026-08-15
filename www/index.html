@@ -419,11 +419,12 @@
             <circle cx="34" cy="36" r="12" fill="var(--bg)"/>
             <path d="M34 42V30M28.5 35.5L34 30l5.5 5.5"/>
           </svg>
-          <div class="choose-t">เลือกไฟล์</div>
-          <div class="choose-s">รูป วิดีโอ เอกสาร โฟลเดอร์</div>
+          <div class="choose-t">ส่งไฟล์</div>
+          <div class="choose-s">เลือกรูป วิดีโอ หรือเอกสาร</div>
         </button>
         <input type="file" id="in-file" style="display:none" multiple accept="*/*">
         <input type="file" id="in-folder" style="display:none" webkitdirectory>
+        <button class="btn btn-blue" id="home-receive" type="button">↓ รับไฟล์จากอีกเครื่อง</button>
 
         <button class="text-link" id="btn-share-text" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 01-8 8H7l-4 3v-4.5A8 8 0 1120 12z"/><path d="M8 10h8M8 14h5"/></svg>
@@ -437,7 +438,7 @@
 
         <div class="trust">
           <span class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 8.2-7 9-4-.8-7-4.6-7-9V6l7-3z"/></svg>ไม่ผ่านคลาวด์</span>
-          <span class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 12a3 3 0 11-3-3c1.6 0 2.6 1.2 3.6 2.3l2.8 3.4c1 1.1 2 2.3 3.6 2.3a3 3 0 100-6c-1.6 0-2.6 1.2-3.6 2.3L10.1 16c-1 1.1-2 2.3-3.6 2.3"/></svg>ไม่จำกัดขนาด</span>
+          <span class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 12a3 3 0 11-3-3c1.6 0 2.6 1.2 3.6 2.3l2.8 3.4c1 1.1 2 2.3 3.6 2.3a3 3 0 100-6c-1.6 0-2.6 1.2-3.6 2.3L10.1 16c-1 1.1-2 2.3-3.6 2.3"/></svg>ไม่ลดคุณภาพ</span>
           <span class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10.5" width="14" height="10" rx="2.2"/><path d="M8.5 10.5V7.8a3.5 3.5 0 017 0v2.7"/></svg>ส่วนตัว</span>
           <span class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/></svg>ทุกแพลตฟอร์ม</span>
         </div>
@@ -530,12 +531,12 @@
       <!-- One line per text node: the i18n walker translates whole phrases, so
            inline tags mid-sentence would leave half-translated text. -->
       <div class="conn-help" id="conn-help">
-        <div class="ch-t">⚠️ ยังไม่มีเครื่องไหนเชื่อมต่อเข้ามา</div>
-        <div class="ch-l">ถ้าอีกเครื่องสแกนแล้วหน้าเว็บค้าง แปลว่าสองเครื่องยังคุยกันไม่ได้</div>
-        <div class="ch-l">1. เช็คว่าทั้งสองเครื่องต่อ WiFi ชื่อเดียวกัน (2.4G กับ 5G ถือว่าคนละวง)</div>
-        <div class="ch-l">2. ปิดเน็ตมือถือของเครื่องที่ส่ง แล้วกดทดสอบใหม่</div>
-        <div class="ch-l">3. WiFi โรงแรม ร้านกาแฟ ออฟฟิศ มักบล็อกไม่ให้เครื่องคุยกัน</div>
-        <div class="ch-l">4. เปิด Hotspot จากเครื่องส่ง แล้วให้อีกเครื่องมาต่อ วิธีนี้ได้ผลเสมอ</div>
+        <div class="ch-t">ยังไม่มีเครื่องเชื่อมต่อ</div>
+        <div class="ch-l">ตรวจตามนี้ แล้วลองสแกน QR ล่าสุดอีกครั้ง</div>
+        <div class="ch-l">1. ตรวจว่า Wi-Fi บนทั้งสองเครื่องเป็นชื่อเดียวกัน</div>
+        <div class="ch-l">2. ปิด VPN ชั่วคราว แล้วลองอีกครั้ง</div>
+        <div class="ch-l">3. ถ้ายังไม่ได้ ลองใช้ Hotspot จากเครื่องหนึ่ง</div>
+        <div class="ch-l">ให้อีกเครื่องเชื่อมต่อ Hotspot แล้วสแกนใหม่</div>
       </div>
       <!-- The no-QR path: devices that advertised themselves as ready to receive.
            One tap pushes the file straight to them. -->
@@ -547,10 +548,10 @@
         <div id="nearby-list"></div>
       </div>
       <div class="howto">
-        <div class="howto-head">How to receive</div>
-        <div class="howto-row"><div class="howto-n">1</div><div class="howto-t">Same WiFi network</div></div>
-        <div class="howto-row"><div class="howto-n">2</div><div class="howto-t">Scan QR or open URL in browser</div></div>
-        <div class="howto-row"><div class="howto-n">3</div><div class="howto-t">Tap Download — no app needed ✓</div></div>
+        <div class="howto-head">รับไฟล์ใน 3 ขั้นตอน</div>
+        <div class="howto-row"><div class="howto-n">1</div><div class="howto-t">ให้อีกเครื่องต่อ Wi-Fi เดียวกัน</div></div>
+        <div class="howto-row"><div class="howto-n">2</div><div class="howto-t">สแกน QR ที่เห็นด้านบน</div></div>
+        <div class="howto-row"><div class="howto-n">3</div><div class="howto-t">กดดาวน์โหลด รับไฟล์ได้ทันที ✓</div></div>
       </div>
     </div>
 
@@ -698,6 +699,14 @@
           <span class="tag tag-green" id="recv-qr-status">พร้อม</span>
         </div>
         <div class="card-body" style="align-items:center">
+          <div id="recv-pair-card" style="width:100%;padding:16px;border-radius:18px;background:linear-gradient(135deg,rgba(0,230,118,.14),rgba(41,121,255,.12));border:1px solid rgba(0,230,118,.3);text-align:center">
+            <div style="font-size:11px;color:var(--t3);font-weight:700;letter-spacing:.8px">PC เปิด gf.maew0009.workers.dev</div>
+            <div id="recv-pair-code" style="font:900 46px/1.2 'DM Mono',monospace;letter-spacing:12px;color:var(--green);padding-left:12px;margin:8px 0">----</div>
+            <div id="recv-pair-note" style="font-size:12px;color:var(--t2)">กำลังสร้างรหัส 4 ตัว...</div>
+            <div id="recv-pair-expiry" style="font-size:11px;color:var(--t3);margin-top:5px"></div>
+            <button class="btn btn-ghost btn-sm" id="btn-recv-new-code" type="button" style="margin-top:10px">สร้างรหัสใหม่</button>
+          </div>
+          <div style="width:100%;display:flex;align-items:center;gap:10px;color:var(--t4);font-size:10px"><span style="height:1px;background:var(--card-bd2);flex:1"></span>หรือใช้ QR ใน Wi-Fi เดียวกัน<span style="height:1px;background:var(--card-bd2);flex:1"></span></div>
           <div style="font-size:12px;color:var(--t3);text-align:center;line-height:1.6">ให้เครื่องส่ง scan QR นี้<br>แล้วกด Upload เพื่อส่งไฟล์มาหาคุณ</div>
           <div id="recv-qr-wrap" style="background:#fff;padding:12px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.4)">
             <div id="recv-qr-box" style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#aaa">กำลังโหลด...</div>
@@ -1022,14 +1031,14 @@
       hideRibbon();
       hideCelebratePopup();
       setTimeout(processCelebrate, 300);
-    }, 2400);
+    }, cfg.duration || 2400);
   }
 
   function getCelebrateConfig(type){
     var configs = {
       'file':    {emoji:'🎉',title:'File selected!',ribbon:'เลือกไฟล์แล้ว! 🎉',    ribbonColor:'blue',  badge:'READY',confetti:true, sparks:true, confettiColors:['#82B1FF','#2979FF','#00E676','#FFD700'],vibrate:[40,30,40]},
       'send':    {emoji:'🚀',title:'Sent!',    ribbon:'ส่งสำเร็จ! 🎉',        ribbonColor:'',      badge:'DONE',confetti:true, sparks:true, confettiColors:['#00E676','#00C853','#82B1FF','#FFD700'],vibrate:[60,40,60]},
-      'receive': {emoji:'📥',title:'Received!',ribbon:'รับไฟล์สำเร็จ! ✨',    ribbonColor:'purple',badge:'NEW', confetti:true, sparks:true, confettiColors:['#B388FF','#7C4DFF','#00E676','#FFD700'],vibrate:[50,30,50,30,80]},
+      'receive': {emoji:'📥',title:'รับไฟล์สำเร็จ!',ribbon:'รับไฟล์สำเร็จ! ✨', ribbonColor:'purple',badge:'DONE',confetti:true, sparks:true, confettiColors:['#B388FF','#7C4DFF','#00E676','#FFD700'],vibrate:[50,30,50,30,80],duration:5500},
       'downloaded':{emoji:'🎉',title:'Picked up!',ribbon:'อีกเครื่องรับไฟล์แล้ว! 🎉',ribbonColor:'purple',badge:'SENT',confetti:true, sparks:true, confettiColors:['#B388FF','#7C4DFF','#00E676','#FFD700'],vibrate:[50,30,50,30,80]},
       'scan':    {emoji:'📷',title:'Scanned!', ribbon:'สแกน QR สำเร็จ! 🎯',   ribbonColor:'blue',  badge:'OK',  confetti:false,sparks:true, vibrate:[30,20,30]},
       'paste':   {emoji:'📋',title:'Pasted!',  ribbon:'Paste สำเร็จ ✓',      ribbonColor:'',      badge:'OK',  confetti:false,sparks:true, vibrate:[25]},
@@ -1537,7 +1546,7 @@ function startNative(file){
   function nsdRegister(port,fileName,token,role){var Nsd=getNsd();if(!Nsd)return;Nsd.register({port:port||8080,deviceName:getDeviceName(),fileName:fileName||'',token:token||'',role:role||'send'}).catch(function(){});}
   // Advertising ourselves as a receiver is what lets the other device send with
   // one tap: it can push straight to our /upload, no QR to scan.
-  function nsdRegisterReceiver(port){nsdRegister(port||8081,'','','recv');}
+  function nsdRegisterReceiver(port,token){nsdRegister(port||8081,'',token||'','recv');}
 
   /* ===== Devices we've transferred with before =====
      Remembering them is what turns "scan a QR" into "tap the name you used
@@ -1705,7 +1714,59 @@ function startNative(file){
     });
   };
 
-  var _recvURL=null;
+  var PAIRING_SERVICE_URL='https://goodfile-pair.maew0009.workers.dev';
+  var _sendPairCode='',_sendPairOwnerSecret='',_sendPairUrl='',_sendPairExpiryTimer=null,_sendPairPollTimer=null;
+  function sendPairMessage(code,note,expiry){
+    var codeEl=$('send-pair-code'),noteEl=$('send-pair-note'),expiryEl=$('send-pair-expiry'),linkEl=$('send-pair-link'),copyEl=$('btn-send-pair-copy');
+    if(codeEl)codeEl.textContent=code||'----';
+    if(noteEl)noteEl.textContent=note||'';
+    if(expiryEl)expiryEl.textContent=expiry||'';
+    var link=code?'https://gf.maew0009.workers.dev/'+code:'';
+    if(linkEl)linkEl.textContent=link||'กำลังเตรียมลิงก์...';
+    if(copyEl)copyEl.disabled=!link;
+  }
+  function sendPairReset(cancelRemote){
+    var code=_sendPairCode,secret=_sendPairOwnerSecret;
+    if(_sendPairExpiryTimer){clearInterval(_sendPairExpiryTimer);_sendPairExpiryTimer=null;}
+    if(_sendPairPollTimer){clearInterval(_sendPairPollTimer);_sendPairPollTimer=null;}
+    _sendPairCode='';_sendPairOwnerSecret='';_sendPairUrl='';
+    if(cancelRemote&&code&&secret)fetch(PAIRING_SERVICE_URL+'/api/pair/'+code,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cancel',ownerSecret:secret})}).catch(function(){});
+  }
+  function sendPairIsAndroid(){try{return window.Capacitor&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='android';}catch(e){return false;}}
+  function sendPairRegister(downloadUrl,force){
+    if(!sendPairIsAndroid()||!/^http:\/\/(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(downloadUrl||''))return;
+    if(!force&&_sendPairUrl===downloadUrl&&_sendPairCode)return;
+    sendPairReset(true);_sendPairUrl=downloadUrl;sendPairMessage('----','กำลังสร้างรหัสสำหรับ PC...','');
+    fetch(PAIRING_SERVICE_URL+'/api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({downloadUrl:downloadUrl})})
+      .then(function(response){return response.json().then(function(data){if(!response.ok)throw new Error(data.error||('HTTP '+response.status));return data;});})
+      .then(function(data){
+        if(!/^\d{4}$/.test(data.code||'')||!data.ownerSecret)throw new Error('Invalid pairing response');
+        _sendPairCode=data.code;_sendPairOwnerSecret=data.ownerSecret;
+        var expiresAt=Number(data.expiresAt)||0;
+        sendPairMessage(_sendPairCode,'PC เปิด gf.maew0009.workers.dev แล้วกรอกรหัสนี้','ใช้ได้ 5 นาที · ไฟล์ส่งตรงผ่าน Wi-Fi');
+        _sendPairExpiryTimer=setInterval(function(){
+          var left=Math.max(0,expiresAt-Date.now()),seconds=Math.ceil(left/1000),minutes=Math.floor(seconds/60),remain=seconds%60;
+          if(left>0)sendPairMessage(_sendPairCode,'PC เปิด gf.maew0009.workers.dev แล้วกรอกรหัสนี้','หมดอายุใน '+minutes+':'+('0'+remain).slice(-2));
+          else{sendPairMessage('----','รหัสหมดอายุแล้ว — เลือกสร้างรหัสใหม่','');sendPairReset(false);}
+        },1000);
+        _sendPairPollTimer=setInterval(function(){
+          fetch(PAIRING_SERVICE_URL+'/api/pair/'+_sendPairCode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',ownerSecret:_sendPairOwnerSecret})})
+            .then(function(response){return response.json();}).then(function(status){
+              if(status.status==='claimed'){sendPairMessage(_sendPairCode,'PC เปิดลิงก์แล้ว — กดดาวน์โหลดที่ PC ได้เลย','เชื่อมตรงผ่าน Wi-Fi เดียวกัน');clearInterval(_sendPairPollTimer);_sendPairPollTimer=null;}
+            }).catch(function(){});
+        },2000);
+      }).catch(function(error){console.warn('sendPairRegister:',error);sendPairMessage('----','สร้างรหัสออนไลน์ไม่ได้ — ใช้ QR ด้านล่างแทน','ตรวจอินเทอร์เน็ตแล้วลองใหม่');});
+  }
+  window.goodfileRegisterDownloadPair=sendPairRegister;
+  window.goodfileCancelDownloadPair=function(){sendPairReset(true);};
+  window.goodfileCopyDownloadPairLink=function(){
+    if(!_sendPairCode)return;
+    var link='https://gf.maew0009.workers.dev/'+_sendPairCode;
+    if(navigator.clipboard)navigator.clipboard.writeText(link).then(function(){toast('คัดลอกลิงก์สำหรับ PC แล้ว');}).catch(function(){toast(link);});
+    else toast(link);
+  };
+  var _recvURL=null,_pairCode='',_pairOwnerSecret='',_pairExpiresAt=0,_pairPollTimer=null,_pairExpiryTimer=null,_recvListenerBound=false;
+
   function recvGetIP(){return new Promise(function(resolve){if(window.deviceIP&&window.deviceIP!=='127.0.0.1'&&window.deviceIP!=='localhost'){resolve(window.deviceIP);return;}var _fs=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.FileServer;if(_fs&&_fs.getIP){var _nd=false;var _nt=setTimeout(function(){if(!_nd){_nd=true;_rtcGetIP(resolve);}},1200);_fs.getIP().then(function(res){if(_nd)return;_nd=true;clearTimeout(_nt);var ip=res&&res.ip;if(ip&&/^\d+\.\d+\.\d+\.\d+$/.test(ip)&&ip!=='127.0.0.1'&&ip!=='0.0.0.0'&&ip.indexOf('169.254.')!==0){window.deviceIP=ip;resolve(ip);}else{_rtcGetIP(resolve);}}).catch(function(){if(_nd)return;_nd=true;clearTimeout(_nt);_rtcGetIP(resolve);});return;}_rtcGetIP(resolve);});}
   function _rtcGetIP(resolve){try{var pc=new RTCPeerConnection({iceServers:[]});pc.createDataChannel('');pc.createOffer().then(function(o){return pc.setLocalDescription(o);});pc.onicecandidate=function(e){if(!e||!e.candidate)return;var m=e.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);if(m&&m[1]!=='127.0.0.1'&&m[1].indexOf('169.254.')!==0){pc.close();resolve(m[1]);}};setTimeout(function(){try{pc.close();}catch(e){}resolve(window.deviceIP||'127.0.0.1');},3000);}catch(e){resolve('127.0.0.1');}}
 
@@ -1894,47 +1955,123 @@ function startNative(file){
     toast('⚠️ QR ที่สแกนเป็นอันเก่า — ให้สแกนอันใหม่');
   }
 
+
+  function pairReset(cancelRemote){
+    var code=_pairCode,secret=_pairOwnerSecret;
+    if(_pairPollTimer){clearInterval(_pairPollTimer);_pairPollTimer=null;}
+    if(_pairExpiryTimer){clearInterval(_pairExpiryTimer);_pairExpiryTimer=null;}
+    _pairCode='';_pairOwnerSecret='';_pairExpiresAt=0;
+    if(cancelRemote&&code&&secret){
+      fetch(PAIRING_SERVICE_URL+'/api/pair/'+code,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cancel',ownerSecret:secret})}).catch(function(){});
+    }
+  }
+  function pairMessage(code,note,expiry){
+    var codeEl=$('recv-pair-code'),noteEl=$('recv-pair-note'),expiryEl=$('recv-pair-expiry');
+    if(codeEl)codeEl.textContent=code||'----';
+    if(noteEl)noteEl.textContent=note||'';
+    if(expiryEl)expiryEl.textContent=expiry||'';
+  }
+  function pairRegister(uploadUrl){
+    pairMessage('----','กำลังสร้างรหัส 4 ตัว...','');
+    fetch(PAIRING_SERVICE_URL+'/api/pair',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uploadUrl:uploadUrl})
+    }).then(function(response){
+      return response.json().then(function(data){if(!response.ok)throw new Error(data.error||('HTTP '+response.status));return data;});
+    }).then(function(data){
+      if(!/^\d{4}$/.test(data.code||'')||!data.ownerSecret)throw new Error('Invalid pairing response');
+      _pairCode=data.code;_pairOwnerSecret=data.ownerSecret;_pairExpiresAt=data.expiresAt||0;
+      pairMessage(_pairCode,'PC กรอกรหัสนี้ แล้วเลือกไฟล์','ใช้ได้ 5 นาที · ลองซ้ำได้');
+      _pairExpiryTimer=setInterval(function(){
+        var left=Math.max(0,_pairExpiresAt-Date.now()),sec=Math.ceil(left/1000),m=Math.floor(sec/60),s=sec%60;
+        var el=$('recv-pair-expiry');if(el)el.textContent=left>0?('หมดอายุใน '+m+':'+('0'+s).slice(-2)):'รหัสหมดอายุแล้ว — กดสร้างรหัสใหม่';
+        if(left<=0){if(_pairPollTimer){clearInterval(_pairPollTimer);_pairPollTimer=null;}clearInterval(_pairExpiryTimer);_pairExpiryTimer=null;}
+      },1000);
+      _pairPollTimer=setInterval(function(){
+        fetch(PAIRING_SERVICE_URL+'/api/pair/'+_pairCode,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action:'status',ownerSecret:_pairOwnerSecret})
+        }).then(function(response){return response.json();}).then(function(status){
+          if(status.status==='claimed'){
+            pairMessage(_pairCode,'PC เชื่อมต่อแล้ว — รอเลือกและส่งไฟล์','เชื่อมตรงผ่าน Wi-Fi เดียวกัน');
+            if(_pairPollTimer){clearInterval(_pairPollTimer);_pairPollTimer=null;}
+          }else if(status.status==='expired'){
+            pairMessage('----','รหัสหมดอายุแล้ว — กดสร้างรหัสใหม่','');
+            pairReset(false);
+          }
+        }).catch(function(){});
+      },2000);
+    }).catch(function(error){
+      console.warn('pairRegister:',error);
+      pairMessage('----','สร้างรหัสออนไลน์ไม่ได้ — ใช้ QR หรือ URL ด้านล่าง','ตรวจอินเทอร์เน็ตแล้วลองใหม่');
+    });
+  }
+  function renderReceiveQR(box,url){
+    box.innerHTML='';
+    function makeRecvQR(a){a=a||0;if(window.QRCode){try{new QRCode(box,{text:url,width:220,height:220,colorDark:'#000000',colorLight:'#ffffff',correctLevel:0});}catch(e){box.textContent=url;}}else if(a<40){setTimeout(function(){makeRecvQR(a+1);},50);}else{box.textContent=url;}}
+    makeRecvQR();
+  }
+  function bindReceiveListener(FileServer){
+    if(_recvListenerBound||!FileServer.addListener)return;
+    _recvListenerBound=true;
+    FileServer.addListener('fileReceived',function(data){
+      console.log('📥 fileReceived raw:',JSON.stringify(data||{}));
+      data=data||{};
+      var name=data.fileName||data.name||data.filename||data.title||'received_file';
+      var size=data.size||data.fileSize||data.length||0;
+      var path=data.filePath||data.path||data.uri||data.fileUri||data.url||data.location||data.absolutePath||'';
+      if(!path){console.warn('⚠️ No path in fileReceived');toast('⚠️ Plugin ไม่ส่ง path กลับมา');}
+      celebrate('receive','รับไฟล์สำเร็จ!',name+(size ? ' • '+fmt(size) : ''));
+      histAdd({type:'recv',name:name,size:size,ip:'WiFi Upload'});
+      if(typeof launchConfetti==='function')launchConfetti();
+      var st2=$('recv-qr-status');if(st2)st2.textContent='รับแล้ว';
+      pairMessage('✓','รับไฟล์สำเร็จ','กดสร้างรหัสใหม่เพื่อรับไฟล์ถัดไป');
+      pairReset(false);
+      recvShowFile(name,size,path);
+    });
+  }
+
   function recvBuildQR(){
-    var box=$('recv-qr-box'),urlEl=$('recv-qr-url');
+    var box=$('recv-qr-box'),urlEl=$('recv-qr-url'),status=$('recv-qr-status');
     if(!box)return;
+    pairReset(true);
+    pairMessage('----','กำลังเปิดเครื่องรับไฟล์...','');
     if(_isIOS&&!isNative()){
       box.innerHTML='<div style="font-size:13px;color:var(--t2);text-align:center;line-height:1.8;padding:8px">📱 <strong style="color:var(--t1)">iPhone รับไฟล์ได้ 2 วิธี</strong><br><br>① สแกน QR จากฝั่งส่ง → Safari จะดาวน์โหลดให้อัตโนมัติ<br><br>② ไปที่ ⚡ Direct → Receive → สแกน QR จากฝั่งส่ง</div>';
-      var st=$('recv-qr-status');if(st)st.textContent='Safari mode';
+      if(status)status.textContent='Safari mode';
+      pairMessage('----','รหัส 4 ตัวรองรับ Android เท่านั้น','');
       return;
     }
     recvGetIP().then(function(ip){
-      var port=8081,url='http://'+ip+':'+port+'/upload';
-      _recvURL=url;
-      if(urlEl)urlEl.textContent=url;
-      box.innerHTML='';
-      function makeRecvQR(a){a=a||0;if(window.QRCode){try{new QRCode(box,{text:url,width:220,height:220,colorDark:'#000000',colorLight:'#ffffff',correctLevel:0});}catch(e){box.textContent=url;}}else if(a<40){setTimeout(function(){makeRecvQR(a+1);},50);}else{box.textContent=url;}}
-      makeRecvQR();
+      var port=8081;
       var FileServer=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.FileServer;
-      if(FileServer&&FileServer.startReceiveServer){
-        FileServer.startReceiveServer({port:port}).then(function(){
-          var st=$('recv-qr-status');if(st)st.textContent='รอรับ';
-          toast('📥 พร้อมรับไฟล์');
-          // Announce over mDNS so a sender nearby can push with one tap.
-          nsdRegisterReceiver(port);
-          if(window.GFDiag)window.GFDiag.log('recv.advertised',{port:port});
-          if(FileServer.addListener){
-            FileServer.addListener('fileReceived',function(data){
-              console.log('📥 fileReceived raw:',JSON.stringify(data||{}));
-              data=data||{};
-              var name=data.fileName||data.name||data.filename||data.title||'received_file';
-              var size=data.size||data.fileSize||data.length||0;
-              var path=data.filePath||data.path||data.uri||data.fileUri||data.url||data.location||data.absolutePath||'';
-              if(!path){console.warn('⚠️ No path in fileReceived');toast('⚠️ Plugin ไม่ส่ง path กลับมา');}
-              toast('✅ รับไฟล์: '+name);
-              histAdd({type:'recv',name:name,size:size,ip:'WiFi Upload'});
-              if(typeof launchConfetti==='function')launchConfetti();
-              var st2=$('recv-qr-status');if(st2)st2.textContent='รับแล้ว';
-              recvShowFile(name,size,path);
-            });
-          }
-        }).catch(function(e){console.warn('startReceiveServer:',e);var st=$('recv-qr-status');if(st)st.textContent='พอร์ตไม่ขึ้น';var msg=(e&&(e.message||e.errorMessage))||e;if(window.toast)toast('❌ เปิดพอร์ตรับไฟล์ไม่ได้: '+msg);});
-      }else{var st=$('recv-qr-status');if(st)st.textContent='ไม่รองรับ';if(window.toast)toast('❌ ฟีเจอร์รับไฟล์ใช้ได้เฉพาะในแอป');
+      if(!FileServer||!FileServer.startReceiveServer){
+        if(status)status.textContent='ไม่รองรับ';
+        pairMessage('----','ฟีเจอร์นี้ใช้ได้เฉพาะแอป Android','');
+        if(window.toast)toast('❌ ฟีเจอร์รับไฟล์ใช้ได้เฉพาะในแอป');
+        return;
       }
+      if(status)status.textContent='กำลังเปิด';
+      FileServer.startReceiveServer({port:port}).then(function(result){
+        var url=result&&result.url?result.url:('http://'+ip+':'+port+'/upload');
+        var receiveToken=result&&result.token?result.token:'';
+        _recvURL=url;
+        if(urlEl)urlEl.textContent=url;
+        renderReceiveQR(box,url);
+        if(status)status.textContent='รอรับ';
+        toast('📥 พร้อมรับไฟล์');
+        nsdRegisterReceiver(port,receiveToken);
+        pairRegister(url);
+        bindReceiveListener(FileServer);
+        if(window.GFDiag)window.GFDiag.log('recv.advertised',{port:port});
+      }).catch(function(error){
+        console.warn('startReceiveServer:',error);
+        if(status)status.textContent='พอร์ตไม่ขึ้น';
+        pairMessage('----','เปิดพอร์ตรับไฟล์ไม่ได้','');
+        var msg=(error&&(error.message||error.errorMessage))||error;
+        if(window.toast)toast('❌ เปิดพอร์ตรับไฟล์ไม่ได้: '+msg);
+      });
     });
   }
 
@@ -2166,6 +2303,8 @@ function startNative(file){
     on('n-recv','click',function(){go('recv');});
     on('n-hist','click',function(){go('hist');histRender();});
     on('hero-send-ring','click',function(){if(window.gfNativePick&&window.gfNativePick())return;$('in-file').click();});
+    on('home-receive','click',function(){go('recv');});
+    on('btn-recv-new-code','click',recvBuildQR);
     on('in-file','change',function(){onFileMulti(this);});
     on('in-folder','change',function(){onFolder(this);});
     on('in-more','change',function(){onFileMulti(this);});
@@ -2227,26 +2366,44 @@ function startNative(file){
     }
   }
 
-  // ===== AdMob banner — shows only after 7 days from first launch =====
-  // Currently uses Google's official TEST ids (safe, no real ads / no revenue).
-  // TODO before going live:
-  //   1) AndroidManifest.xml -> replace APPLICATION_ID meta-data with your real AdMob App ID
-  //   2) AD_BANNER_UNIT_ID below -> your real Banner ad unit id
-  //   3) set AD_BANNER_TESTING = false
-  var AD_BANNER_DELAY_DAYS = 7;
-  var AD_BANNER_UNIT_ID = 'ca-app-pub-5804107706055854/9877829327'; // live banner unit
+  // ===== AdMob banner — starts 15 days after first install =====
+  // Android and iOS use separate live AdMob app/banner IDs.
+  // Live configuration:
+  //   1) Android App ID: AndroidManifest.xml
+  //   2) iOS App ID: Info.plist
+  //   3) Banner IDs are selected by Capacitor platform
+  var AD_BANNER_DELAY_DAYS = 15;
+  var AD_BANNER_ANDROID_UNIT_ID = 'ca-app-pub-5804107706055854/2934472448';
+  var AD_BANNER_IOS_UNIT_ID = 'ca-app-pub-5804107706055854/9877829327';
   var AD_BANNER_TESTING = false;
+  function adPlatform(){
+    try{if(window.Capacitor&&window.Capacitor.getPlatform)return window.Capacitor.getPlatform();}catch(e){}
+    var ua=(navigator&&navigator.userAgent)||'';
+    if(/iPad|iPhone|iPod/i.test(ua))return 'ios';
+    if(/Android/i.test(ua))return 'android';
+    return 'web';
+  }
+  function adUnitId(){
+    var p=adPlatform();
+    if(p==='android')return AD_BANNER_ANDROID_UNIT_ID;
+    if(p==='ios')return AD_BANNER_IOS_UNIT_ID;
+    return '';
+  }
   function adInstallTs(){
-    try{var k='gf_install_ts',v=localStorage.getItem(k);
-      if(!v){v=String(Date.now());localStorage.setItem(k,v);}
-      return parseInt(v,10)||Date.now();}catch(e){return Date.now();}
+    try{
+      var k='gf_install_ts_'+adPlatform(),v=localStorage.getItem(k);
+      if(!v){v=localStorage.getItem('gf_install_ts')||String(Date.now());localStorage.setItem(k,v);}
+      return parseInt(v,10)||Date.now();
+    }catch(e){return Date.now();}
   }
   function adDaysSinceInstall(){return (Date.now()-adInstallTs())/86400000;}
   function initAdBanner(){
-    if(!isNative())return;                 // real device / APK only (no-op on web & electron)
+    if(!isNative())return;                 // real device only (no-op on web & Electron)
+    var unitId=adUnitId();
+    if(!unitId)return;
     var AdMob=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AdMob;
     if(!AdMob||!AdMob.showBanner)return;    // plugin not present
-    if(adDaysSinceInstall()<AD_BANNER_DELAY_DAYS)return; // not yet day 7 since install
+    if(adDaysSinceInstall()<AD_BANNER_DELAY_DAYS)return; // first 15 days stay ad-free
     try{var st=document.createElement('style');
       st.textContent='body.has-ad .nav{bottom:var(--ad-h,0)}body.has-ad #app{padding-bottom:calc(var(--sb) + 72px + var(--ad-h,0))}';
       document.head.appendChild(st);}catch(e){}
@@ -2256,7 +2413,7 @@ function startNative(file){
       document.body.classList.toggle('has-ad',h>0);
     });}catch(e){}
     var show=function(){
-      AdMob.showBanner({adId:AD_BANNER_UNIT_ID,adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:0,isTesting:AD_BANNER_TESTING})
+      AdMob.showBanner({adId:unitId,adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:0,isTesting:AD_BANNER_TESTING})
         .catch(function(e){try{console.warn('AdMob banner failed',e);}catch(_){}});
     };
     try{var p=AdMob.initialize?AdMob.initialize({initializeForTesting:AD_BANNER_TESTING}):null;

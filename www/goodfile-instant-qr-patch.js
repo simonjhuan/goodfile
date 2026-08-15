@@ -195,6 +195,13 @@
     fsize.className = 'qr-fs';
     fsize.textContent = file ? fmtSize(file.size) : '';
     wrap.appendChild(fsize);
+    var pairCard = document.createElement('div');
+    pairCard.id = 'send-pair-card';
+    pairCard.style.cssText = 'width:100%;padding:16px;border-radius:18px;background:linear-gradient(135deg,rgba(41,121,255,.19),rgba(0,230,118,.10));border:1px solid rgba(130,177,255,.34);text-align:center;box-shadow:0 12px 32px rgba(0,0,0,.16)';
+    pairCard.innerHTML = '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:.8px">ส่งไปยัง PC โดยไม่ต้องพิมพ์ IP</div><div id="send-pair-code" style="font:900 46px/1.2 DM Mono,monospace;letter-spacing:12px;color:#82B1FF;padding-left:12px;margin:8px 0">----</div><div id="send-pair-note" style="font-size:12px;color:var(--t2)">กำลังสร้างรหัส 4 ตัว...</div><div id="send-pair-expiry" style="font-size:11px;color:var(--t3);margin-top:5px"></div><div id="send-pair-link" style="margin-top:12px;padding:9px 10px;border-radius:10px;background:rgba(10,15,30,.45);font:700 10px/1.4 DM Mono,monospace;color:#BFD5FF;word-break:break-all">กำลังเตรียมลิงก์...</div><button id="btn-send-pair-copy" type="button" disabled style="width:100%;margin-top:9px;padding:10px;border:0;border-radius:11px;background:#2979FF;color:white;font:800 12px DM Sans,sans-serif">คัดลอกลิงก์สำหรับ PC</button><div style="margin-top:10px;font-size:11px;color:var(--t3);line-height:1.55">1. PC เปิด <b style="color:#BFD5FF">gf.maew0009.workers.dev</b><br>2. กรอกรหัสนี้ แล้วกดดาวน์โหลด</div>';
+    wrap.appendChild(pairCard);
+    var copyPairBtn = $('btn-send-pair-copy');
+    if(copyPairBtn)copyPairBtn.addEventListener('click',function(){if(window.goodfileCopyDownloadPairLink)window.goodfileCopyDownloadPairLink();});
     var pill = document.createElement('div');
     pill.id = 'qr-instant-status';
     pill.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:100px;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);color:#00E676;font-size:11px;font-weight:700';
@@ -287,7 +294,7 @@
     dlog('🌐 Get IP...');
     getLocalIPFast().then(function(ip){
       var tok = gfMakeToken();
-      var url = gfWithToken('http://'+ip+':'+SERVER_PORT+'/download', tok);
+      var url = gfWithToken('http://'+ip+':'+SERVER_PORT+'/', tok);
       window._gfToken = tok;
       window._lastServerIP = ip;
       window._lastServerFile = file;
@@ -347,7 +354,7 @@
     dlog('🌐 Get IP...');
     getLocalIPFast().then(function(ip){
       var tok = gfMakeToken();
-      var url = gfWithToken('http://'+ip+':'+SERVER_PORT+'/download', tok);
+      var url = gfWithToken('http://'+ip+':'+SERVER_PORT+'/', tok);
       window._gfToken = tok;
       window._lastServerIP = ip;
       window._lastServerFile = meta;
@@ -636,6 +643,7 @@
     // Offer the no-QR push path once the server is genuinely up.
     if(window.nearbyStartForSend) setTimeout(window.nearbyStartForSend, 500);
     if(window.qrTabAvail) window.qrTabAvail(true);
+    if(window.goodfileRegisterDownloadPair) window.goodfileRegisterDownloadPair(url);
     _serverReady = true;
   }
 
@@ -646,6 +654,7 @@
   window.doStop = function(){
     if(_blobURL){try{URL.revokeObjectURL(_blobURL);}catch(e){}_blobURL=null;}
     _serverReady = false;
+    if(window.goodfileCancelDownloadPair) window.goodfileCancelDownloadPair();
     if(_origStop) _origStop();
   };
 

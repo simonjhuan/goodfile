@@ -172,6 +172,7 @@ public class NsdPlugin extends Plugin {
                     String url = ip == null ? ""
                             : "recv".equals(role)
                                 ? "http://" + ip + ":" + port + "/upload"
+                                  + (tok != null && !tok.isEmpty() ? "?t=" + tok : "")
                                 : "http://" + ip + ":" + port + "/download"
                                   + (tok != null && !tok.isEmpty() ? "?t=" + tok : "");
 
