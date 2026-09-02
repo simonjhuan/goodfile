@@ -925,8 +925,11 @@
   })();
 
   var _isIOS = (function(){
-    var ua = navigator.userAgent || '';
-    return /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    try{
+      if(window.Capacitor&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='ios')return true;
+    }catch(e){}
+    var ua=navigator.userAgent||'',platform=navigator.platform||'';
+    return (/iPad|iPhone|iPod/.test(ua)||(/Mac/.test(platform)&&navigator.maxTouchPoints>1))&&!window.MSStream;
   })();
 
   var APP_VERSION='3';
@@ -2037,10 +2040,15 @@ function startNative(file){
     if(!box)return;
     pairReset(true);
     pairMessage('----','กำลังเปิดเครื่องรับไฟล์...','');
-    if(_isIOS&&!isNative()){
-      box.innerHTML='<div style="font-size:13px;color:var(--t2);text-align:center;line-height:1.8;padding:8px">📱 <strong style="color:var(--t1)">iPhone รับไฟล์ได้ 2 วิธี</strong><br><br>① สแกน QR จากฝั่งส่ง → Safari จะดาวน์โหลดให้อัตโนมัติ<br><br>② ไปที่ ⚡ Direct → Receive → สแกน QR จากฝั่งส่ง</div>';
-      if(status)status.textContent='Safari mode';
-      pairMessage('----','รหัส 4 ตัวรองรับ Android เท่านั้น','');
+    if(_isIOS){
+      // iOS cannot host the Android HTTP upload server. Use the existing
+      // peer-to-peer receiver instead of showing a plugin error on this tab.
+      box.innerHTML='<div style="font-size:13px;color:var(--t2);text-align:center;line-height:1.8;padding:8px">📱 <strong style="color:var(--t1)">Receive on iPhone or iPad</strong><br><br>Receive directly from the sender without uploading to a cloud service.<br><br><button class="btn btn-green btn-sm" id="btn-ios-direct-receive" type="button">Open Direct Receive</button></div>';
+      if(status)status.textContent='Ready';
+      if(urlEl)urlEl.textContent='Direct device-to-device receive';
+      pairMessage('P2P','Ready to receive','Tap Open Direct Receive below');
+      var directButton=$('btn-ios-direct-receive');
+      if(directButton)directButton.addEventListener('click',openIOSDirectReceive);
       return;
     }
     recvGetIP().then(function(ip){
@@ -2075,6 +2083,14 @@ function startNative(file){
     });
   }
 
+  function openIOSDirectReceive(){
+    var receiverButton=$('p2p-btn-receiver'),senderButton=$('p2p-btn-sender'),wdButton=$('p2p-btn-wd');
+    if(receiverButton)receiverButton.classList.add('on');
+    if(senderButton)senderButton.classList.remove('on');
+    if(wdButton)wdButton.classList.remove('on');
+    p2pSetRole('receiver');
+    go('p2p');
+  }
   function recvCopyURL(){if(!_recvURL){toast('ยังไม่มี URL');return;}try{navigator.clipboard.writeText(_recvURL).then(function(){toast('✅ Copy URL แล้ว!');}).catch(function(){toast(_recvURL);});}catch(e){toast(_recvURL);}}
 
   var _recvFiles=[],_lastRecvPath='',_lastRecvName='';
@@ -2373,8 +2389,8 @@ function startNative(file){
   //   2) iOS App ID: Info.plist
   //   3) Banner IDs are selected by Capacitor platform
   var AD_BANNER_DELAY_DAYS = 15;
-  var AD_BANNER_ANDROID_UNIT_ID = 'ca-app-pub-5804107706055854/2934472448';
-  var AD_BANNER_IOS_UNIT_ID = 'ca-app-pub-5804107706055854/9877829327';
+  var AD_BANNER_ANDROID_UNIT_ID = 'ca-app-pub-5804107706055854/2902211067';
+  var AD_BANNER_IOS_UNIT_ID = 'ca-app-pub-5804107706055854/6840571593';
   var AD_BANNER_TESTING = false;
   function adPlatform(){
     try{if(window.Capacitor&&window.Capacitor.getPlatform)return window.Capacitor.getPlatform();}catch(e){}

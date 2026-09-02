@@ -44,10 +44,12 @@
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "GoodFile"
+      "shortcutName": "GoodFile",
+      "include": "installer/installer.nsh"
     }
   },
   "dependencies": {

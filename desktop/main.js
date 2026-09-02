@@ -73,7 +73,7 @@ function startFileServer(fileName, mimeType, buffer) {
 
       if (requestUrl.pathname === '/api/ping') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ app: 'goodfile', device: os.hostname(), fileName: servedFileName }));
+        res.end(JSON.stringify({ app: 'goodfile', device: 'GoodFile on PC' }));
         return;
       }
 

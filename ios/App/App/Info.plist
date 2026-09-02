@@ -34,7 +34,9 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan a QR code to connect to the other device.</string>
+	<string>Take photos or videos to send, and scan QR codes to connect to another device.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Record audio when you take a video to send to another device.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save received files to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
