@@ -1211,6 +1211,8 @@
     // pushed with one tap instead of scanned.
     if(tab==='qr'&&srvURL)nearbyStartForSend();else if(tab!=='qr')nearbyStop();
   }
+  function addFiles(files){if(!files||!files.length)return;fileQueue=fileQueue.concat(Array.from(files));renderFileList();celebrate('file',files.length===1?'File selected!':'Files selected!',files.length===1?files[0].name:files.length+' files ready to send');}
+
   function onFileMulti(input){var files=Array.from(input.files);input.value='';if(!files.length)return;fileQueue=fileQueue.concat(files);renderFileList();celebrate('file',files.length===1?'File selected!':'Files selected!',files.length===1?files[0].name:files.length+' files ready to send');}
   function renderFileList(){var flist=$('flist'),items=$('flist-items'),count=$('flist-count');if(!fileQueue.length){flist.classList.remove('on');return;}flist.classList.add('on');count.textContent=fileQueue.length;items.innerHTML='';fileQueue.forEach(function(f,i){var row=document.createElement('div');row.className='flist-row';row.innerHTML='<span class="flist-ic">'+fileEmoji(f.name)+'</span><span class="flist-nm">'+f.name+'</span><span class="flist-sz">'+fmt(f.size)+'</span><button class="flist-del" data-i="'+i+'" type="button">✕</button>';items.appendChild(row);});var btns=items.querySelectorAll('.flist-del');for(var x=0;x<btns.length;x++)btns[x].addEventListener('click',function(){fileQueue.splice(parseInt(this.dataset.i),1);renderFileList();});if(fileQueue.length>0&&!srvURL)startSendQueue();}
   function startSendQueue(){if(!fileQueue.length)return;if(fileQueue.length===1){processFile(fileQueue[0]);return;}loadJSZip(function(){var zip=new JSZip();fileQueue.forEach(function(f){zip.file(f.name,f);});setProgress('Zipping '+fileQueue.length+' files...',20);zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}}).then(function(blob){var d=new Date().toISOString().slice(0,10);processFile(new File([blob],'files-'+d+'.zip',{type:'application/zip'}));});});}
@@ -2034,6 +2036,19 @@ function startNative(file){
       recvShowFile(name,size,path);
     });
   }
+  function bindElectronReceiveListener(){
+    if(_recvListenerBound||!window.electronAPI||!window.electronAPI.onFileReceived)return;
+    _recvListenerBound=true;
+    window.electronAPI.onFileReceived(function(data){
+      data=data||{};var name=data.fileName||'received_file',size=data.size||0,path=data.path||'';
+      celebrate('receive','รับไฟล์สำเร็จ!',name+(size ? ' • '+fmt(size) : ''));
+      histAdd({type:'recv',name:name,size:size,ip:'WiFi Upload'});
+      if(typeof launchConfetti==='function')launchConfetti();
+      var st2=$('recv-qr-status');if(st2)st2.textContent='รับแล้ว';
+      pairMessage('✓','รับไฟล์สำเร็จ','กดสร้างรหัสใหม่เพื่อรับไฟล์ถัดไป');
+      pairReset(false);recvShowFile(name,size,path);
+    });
+  }
 
   function recvBuildQR(){
     var box=$('recv-qr-box'),urlEl=$('recv-qr-url'),status=$('recv-qr-status');
@@ -2049,6 +2064,18 @@ function startNative(file){
       pairMessage('P2P','Ready to receive','Tap Open Direct Receive below');
       var directButton=$('btn-ios-direct-receive');
       if(directButton)directButton.addEventListener('click',openIOSDirectReceive);
+      return;
+    }
+    if(window.electronAPI&&window.electronAPI.startReceiveServer){
+      if(status)status.textContent='กำลังเปิด';
+      window.electronAPI.startReceiveServer().then(function(result){
+        var url=result&&result.url;if(!url)throw new Error('No receive URL');
+        _recvURL=url;if(urlEl)urlEl.textContent=url;renderReceiveQR(box,url);
+        if(status)status.textContent='รอรับ';pairRegister(url);bindElectronReceiveListener();toast('📥 PC พร้อมรับไฟล์');
+      }).catch(function(error){
+        if(status)status.textContent='พอร์ตไม่ขึ้น';pairMessage('----','เปิดพอร์ตรับไฟล์ไม่ได้','');
+        toast('❌ เปิดพอร์ตรับไฟล์ไม่ได้: '+(error&&error.message||error));
+      });
       return;
     }
     recvGetIP().then(function(ip){
@@ -2370,6 +2397,13 @@ function startNative(file){
     on('mv-close','click',closeMediaViewer);
     on('mv-save','click',mvSave);
     on('mv-share','click',mvShare);
+    document.addEventListener('dragover',function(e){if(e.dataTransfer&&e.dataTransfer.types&&Array.prototype.indexOf.call(e.dataTransfer.types,'Files')>=0)e.preventDefault();},true);
+    document.addEventListener('drop',function(e){
+      var files=e.dataTransfer&&e.dataTransfer.files;
+      if(!files||!files.length)return;
+      e.preventDefault();e.stopPropagation();go('send');addFiles(files);
+      toast('📂 เพิ่ม '+files.length+' ไฟล์แล้ว');
+    },true);
     var DL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Downloader;
     if(DL&&DL.addListener){
       try{

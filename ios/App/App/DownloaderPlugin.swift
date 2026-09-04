@@ -1,5 +1,6 @@
 import Capacitor
 import Foundation
+import UIKit
 
 @objc(DownloaderPlugin)
 final class DownloaderPlugin: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDelegate {
@@ -81,6 +82,9 @@ final class DownloaderPlugin: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDel
             ]
             notifyListeners("downloadComplete", data: result)
             activeCall?.resolve(result)
+            DispatchQueue.main.async { [weak self] in
+                self?.presentAppPicker(for: destination)
+            }
             resumeData = nil
         } catch {
             notifyListeners("downloadError", data: ["error": error.localizedDescription, "resumable": false])
@@ -109,6 +113,19 @@ final class DownloaderPlugin: CAPPlugin, CAPBridgedPlugin, URLSessionDownloadDel
         let invalid = CharacterSet(charactersIn: "\\/:*?\"<>|")
         let name = value.components(separatedBy: invalid).joined(separator: "_")
         return name.isEmpty ? "goodfile_download" : name
+    }
+    /// Shows compatible apps so a download is never handed to a previous default app.
+    private func presentAppPicker(for fileURL: URL) {
+        guard let viewController = bridge?.viewController else { return }
+        let picker = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+        if let popover = picker.popoverPresentationController {
+            popover.sourceView = viewController.view
+            popover.sourceRect = CGRect(x: viewController.view.bounds.midX,
+                                        y: viewController.view.bounds.midY,
+                                        width: 1, height: 1)
+            popover.permittedArrowDirections = []
+        }
+        viewController.present(picker, animated: true)
     }
 
     private func uniqueURL(in folder: URL, name: String) -> URL {

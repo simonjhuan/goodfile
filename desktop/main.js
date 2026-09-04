@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const os = require('os');
 const crypto = require('crypto');
+const fs = require('fs');
 
 let mainWindow;
 let fileServer = null;
@@ -10,6 +11,9 @@ let servedBuffer = null;
 let servedFileName = '';
 let servedMimeType = '';
 let servedToken = '';
+let receiveServer = null;
+let receiveToken = '';
+const MAX_RECEIVE_BYTES = 4 * 1024 * 1024 * 1024;
 
 // Windows boxes are full of virtual adapters (VirtualBox, VMware, WSL, Hyper-V,
 // VPNs) that answer before the real WiFi/Ethernet card. Returning one of those
@@ -141,6 +145,55 @@ function startFileServer(fileName, mimeType, buffer) {
   });
 }
 
+
+function safeFileName(name) {
+  const clean = path.basename(String(name || 'received_file')).replace(/[\\/:*?"<>|]/g, '_').trim();
+  return clean || 'received_file';
+}
+
+function startReceiveServer() {
+  return new Promise((resolve, reject) => {
+    if (receiveServer) receiveServer.close();
+    receiveToken = crypto.randomBytes(16).toString('hex');
+    const ip = getLanIP();
+    receiveServer = http.createServer((req, res) => {
+      const requestUrl = new URL(req.url, 'http://localhost');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Methods': 'POST, OPTIONS' }); res.end(); return; }
+      if (req.method === 'GET' && (requestUrl.pathname === '/' || requestUrl.pathname === '/upload')) {
+        if (requestUrl.searchParams.get('t') !== receiveToken) { res.writeHead(403); res.end('Invalid or expired upload link'); return; }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>GoodFile</title><style>body{font-family:system-ui;background:#effaf4;margin:0;display:grid;place-items:center;min-height:100vh}.card{background:#fff;padding:28px;border-radius:20px;text-align:center;box-shadow:0 8px 28px #0002;max-width:340px}button{background:#27b562;color:#fff;border:0;border-radius:12px;padding:13px 20px;font-weight:700;margin-top:14px}</style><main class="card"><h2>📥 Send to PC</h2><p>Select a file to send securely over local Wi-Fi.</p><input id="f" type="file"><br><button id="b">Send file</button><p id="s"></p></main><script>b.onclick=async()=>{let f=document.getElementById('f').files[0];if(!f)return;s.textContent='Uploading…';try{let r=await fetch('/upload?name='+encodeURIComponent(f.name)+'&t=${receiveToken}',{method:'POST',headers:{'Content-Type':f.type||'application/octet-stream'},body:f});s.textContent=r.ok?'Sent ✓':'Failed: HTTP '+r.status}catch(e){s.textContent='Connection failed'}}</script>`);
+        return;
+      }
+      if (req.method !== 'POST' || requestUrl.pathname !== '/upload' || requestUrl.searchParams.get('t') !== receiveToken) { res.writeHead(403); res.end('Invalid upload request'); return; }
+      const length = Number(req.headers['content-length'] || 0);
+      if (!Number.isFinite(length) || length > MAX_RECEIVE_BYTES) { res.writeHead(413); res.end('File is too large'); return; }
+      const directory = path.join(app.getPath('downloads'), 'GoodFile');
+      fs.mkdirSync(directory, { recursive: true });
+      const fileName = safeFileName(requestUrl.searchParams.get('name'));
+      const destination = path.join(directory, `${Date.now()}-${fileName}`);
+      const output = fs.createWriteStream(destination, { flags: 'wx' });
+      let received = 0;
+      req.on('data', chunk => { received += chunk.length; if (received > MAX_RECEIVE_BYTES) req.destroy(); });
+      req.on('aborted', () => output.destroy());
+      output.on('error', () => { res.writeHead(500); res.end('Unable to save file'); });
+      output.on('finish', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('file-received', { fileName, size: received, path: destination });
+        res.writeHead(201, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, fileName, size: received }));
+      });
+      req.pipe(output);
+    });
+    receiveServer.once('error', reject);
+    receiveServer.listen(8081, '0.0.0.0', () => resolve({ url: `http://${ip}:8081/upload?t=${receiveToken}`, ip, token: receiveToken }));
+  });
+}
+
+function stopReceiveServer() {
+  if (receiveServer) receiveServer.close();
+  receiveServer = null;
+  receiveToken = '';
+}
 function stopFileServer() {
   if (fileServer) { fileServer.close(); fileServer = null; }
   servedBuffer = null;
@@ -150,6 +203,8 @@ ipcMain.handle('serve-buffer', async (event, fileName, mimeType, arrayBuffer) =>
   return await startFileServer(fileName, mimeType, arrayBuffer);
 });
 
+ipcMain.handle('start-receive-server', () => startReceiveServer());
+ipcMain.handle('stop-receive-server', () => stopReceiveServer());
 ipcMain.handle('stop-server', () => { stopFileServer(); });
 ipcMain.handle('get-lan-ip', () => getLanIP());
 
@@ -186,5 +241,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   stopFileServer();
+  stopReceiveServer();
   if (process.platform !== 'darwin') app.quit();
 });
