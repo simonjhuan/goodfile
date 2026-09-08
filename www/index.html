@@ -861,7 +861,13 @@
             </div>
           </div>
           <div class="card-body">
-            <div style="font-size:12px;color:var(--t3);line-height:1.55">Create WiFi from this device — no router needed</div>
+            <div id="hs-description" style="font-size:12px;color:var(--t3);line-height:1.55">Create WiFi from this device — no router needed</div>
+            <div id="hs-manual" style="display:none;font-size:13px;line-height:1.6;margin-top:12px">
+              <p>Connect both devices to the same Wi-Fi network, or join a hotspot created by another phone. Then return to GoodFile to send or receive files.</p>
+              <p>To share a cellular connection from an iPhone or Wi-Fi + Cellular iPad, open Settings &gt; Personal Hotspot and enable Allow Others to Join. Availability depends on your carrier and plan. Wi-Fi-only iPads cannot create a Personal Hotspot.</p>
+              <button class="btn btn-green" id="btn-hs-send" type="button">Send files</button>
+              <button class="btn btn-ghost" id="btn-hs-receive" type="button">Receive files</button>
+            </div>
             <div class="hs-info" id="hs-info" style="display:none">
               <div class="hs-row"><span class="hs-lbl">WiFi Name</span><span class="hs-val" id="hs-ssid">—</span></div>
               <div class="hs-row"><span class="hs-lbl">Password</span><span class="hs-val" id="hs-pass">—</span></div>
@@ -1685,8 +1691,17 @@ function startNative(file){
   function clipCopyRecv(){var text=window._recvClipText||'';if(!text){toast('ไม่มีข้อความ');return;}navigator.clipboard.writeText(text).then(function(){toast('✅ Copy แล้ว!');}).catch(function(){toast(text.slice(0,60)+'...');});}
   function clipShowRecvCard(){var card=$('clip-recv-card');if(card)card.style.display=scannedURL?'':'none';}
 
+  function configureHotspotUI(){
+    if(!_isIOS)return;
+    $('hs-status-txt').textContent='Set up in Settings';
+    $('hs-dot').style.display='none';
+    $('hs-description').textContent='On iPhone and iPad, Personal Hotspot is managed in Settings.';
+    $('hs-manual').style.display='';
+    $('btn-hs-start').style.display='none';
+    $('btn-hs-stop').style.display='none';
+  }
   function getHotspot(){return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Hotspot;}
-  function hsStart(){var Hs=getHotspot();if(!Hs){toast('❌ HotspotPlugin ไม่พบ');return;}var btn=$('btn-hs-start');btn.disabled=true;btn.textContent='⏳ กำลังเปิด...';Hs.start().then(function(res){hsOnActive(res);}).catch(function(e){btn.disabled=false;btn.textContent='⚡ Start Hotspot';toast('❌ '+(e.message||'เปิด Hotspot ไม่ได้'));});try{Hs.addListener('hotspotChanged',function(ev){if(ev.event==='stopped')hsOnStopped();});}catch(e){}}
+  function hsStart(){if(_isIOS){configureHotspotUI();return;}var Hs=getHotspot();if(!Hs){toast('❌ HotspotPlugin ไม่พบ');return;}var btn=$('btn-hs-start');btn.disabled=true;btn.textContent='⏳ กำลังเปิด...';Hs.start().then(function(res){hsOnActive(res);}).catch(function(e){btn.disabled=false;btn.textContent='⚡ Start Hotspot';toast('❌ '+(e.message||'เปิด Hotspot ไม่ได้'));});try{Hs.addListener('hotspotChanged',function(ev){if(ev.event==='stopped')hsOnStopped();});}catch(e){}}
   function hsOnActive(res){var ssid=res.ssid||'goodfile_hotspot',pass=res.pass||'',ip=res.ip||'192.168.49.1';$('hs-dot').classList.add('on');$('hs-status-txt').textContent='เปิดอยู่';$('hs-card').classList.add('active');$('hs-info').style.display='';$('hs-ssid').textContent=ssid;$('hs-pass').textContent=pass||'(ไม่มีรหัส)';$('hs-ip').textContent=ip;$('btn-hs-start').style.display='none';$('btn-hs-stop').style.display='';var wifiQr='WIFI:T:WPA;S:'+ssid+';P:'+pass+';;';var qrWrap=$('hs-qr-wrap'),qrDiv=$('hs-qr');qrDiv.innerHTML='';qrWrap.style.display='';function makeHsQR(a){a=a||0;if(window.QRCode){try{new QRCode(qrDiv,{text:wifiQr,width:200,height:200,colorDark:'#000',colorLight:'#fff',correctLevel:0});}catch(e){qrDiv.textContent=ssid;}}else if(a<20){setTimeout(function(){makeHsQR(a+1);},300);}}makeHsQR();toast('📡 Hotspot เปิดแล้ว! ให้ฝั่งรับต่อ WiFi: '+ssid);}
   function hsStop(){var Hs=getHotspot();if(Hs)Hs.stop().catch(function(){});hsOnStopped();}
   function hsOnStopped(){$('hs-dot').classList.remove('on');$('hs-status-txt').textContent='ปิดอยู่';$('hs-card').classList.remove('active');$('hs-info').style.display='none';$('hs-qr-wrap').style.display='none';$('hs-qr').innerHTML='';$('btn-hs-start').style.display='';$('btn-hs-start').disabled=false;$('btn-hs-start').textContent='⚡ Start Hotspot';$('btn-hs-stop').style.display='none';toast('Hotspot ปิดแล้ว');}
@@ -2357,6 +2372,9 @@ function startNative(file){
     on('btn-qr','click',function(){go('qr');});
     on('btn-share','click',doShare);
     on('btn-stop','click',doStop);
+    configureHotspotUI();
+    on('btn-hs-send','click',function(){go('send');});
+    on('btn-hs-receive','click',function(){go('recv');});
     on('btn-hs-start','click',hsStart);
     on('btn-hs-stop','click',hsStop);
     on('btn-clip-paste','click',clipPaste);
