@@ -12,10 +12,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+        // Cold start from the share sheet ("Copy to goodfile" / "Open in goodfile").
+        SharedInbox.shared.receive(connectionOptions.urlContexts.map { $0.url })
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+        let urls = URLContexts.map { $0.url }
+        SharedInbox.shared.receive(urls)
+        let others = URLContexts.filter { !$0.url.isFileURL }
+        if !others.isEmpty {
+            SceneDelegateProxy.shared.scene(scene, openURLContexts: others)
+        }
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {

@@ -328,9 +328,7 @@
     plugin.pickFile().then(function(res){
       var files = (res && res.files) || (res && res.uri ? [res] : []);
       if(!files.length){ if(window.toast) window.toast('ยกเลิก'); return; }
-      if(files.length === 1) gfDirectServe(plugin, files[0]);
-      else if(files.every(function(f){return /^image\//.test(f.mimeType||'');})) gfGalleryServe(plugin, files);
-      else gfZipAndServe(plugin, files);
+      gfServeFiles(plugin, files);
     }).catch(function(e){
       var msg = (e && (e.message||e.errorMessage)) || '';
       if(/cancel/i.test(msg)){ dlog('⏹️ Cancelled'); }
@@ -338,6 +336,53 @@
     });
     return true;
   };
+
+  function gfIsIOS(){return !!(window.Capacitor&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='ios');}
+
+  /* native file list → 1 ไฟล์เสิร์ฟตรง / รูปล้วน = แกลเลอรี / อื่นๆ = zip */
+  function gfServeFiles(plugin, files){
+    if(files.length === 1) gfDirectServe(plugin, files[0]);
+    else if(gfIsIOS()) gfZipFromUrls(files);  // iOS native has no gallery/readReceivedFile
+    else if(files.every(function(f){return /^image\//.test(f.mimeType||'');})) gfGalleryServe(plugin, files);
+    else gfZipAndServe(plugin, files);
+  }
+
+  /* iOS: file:// → WebView-readable URL → Blob → zip → processFile (same as <input> multi-pick) */
+  function gfZipFromUrls(files){
+    if(typeof window.loadJSZip!=='function'){ if(window.showErr) window.showErr('JSZip ไม่พบ'); return; }
+    if(window.setProgress) window.setProgress('Zipping '+files.length+' files...', 25);
+    Promise.all(files.map(function(f){
+      return fetch(window.Capacitor.convertFileSrc(f.uri)).then(function(r){return r.blob();}).then(function(b){return {name:f.name||'file', blob:b};});
+    })).then(function(blobs){
+      window.loadJSZip(function(){
+        var zip=new JSZip();
+        blobs.forEach(function(b){zip.file(b.name,b.blob);});
+        zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}}).then(function(zblob){
+          var d=new Date().toISOString().slice(0,10);
+          window.processFile(new File([zblob],'goodfile-'+d+'.zip',{type:'application/zip'}));
+        });
+      });
+    }).catch(function(){ if(window.showErr) window.showErr('อ่านไฟล์ไม่ได้'); });
+  }
+
+  /* ═══ SHARE SHEET: "แชร์ → GoodFile" จากแอปอื่น → เข้าท่อส่งเดิม → QR ═══ */
+  function gfCheckShared(){
+    var plugin = getPlugin();
+    if(!(plugin && plugin.getSharedFiles)) return;
+    plugin.getSharedFiles().then(function(res){
+      var files = (res && res.files) || [];
+      if(files.length){ dlogReset(); dlog('📥 Shared: '+files.length+' file(s)', '#FFD700'); gfServeFiles(plugin, files); }
+      else if(res && res.text && window.processFile) window.processFile(new File([res.text],'shared-text.txt',{type:'text/plain'}));
+    }).catch(function(){});
+  }
+  (function gfInitShare(){
+    var plugin = getPlugin();
+    if(!(plugin && plugin.getSharedFiles && isNative())) return;
+    try{ plugin.addListener('shareReceived', gfCheckShared); }catch(e){}
+    // Cold start: wait until index.html's inline app script has defined go/processFile.
+    if(document.readyState === 'complete') setTimeout(gfCheckShared, 300);
+    else window.addEventListener('load', function(){ setTimeout(gfCheckShared, 300); });
+  })();
 
   /* 1 ไฟล์ → เสิร์ฟตรงจาก content:// (0-copy เร็วไม่ขึ้นกับขนาด) */
   function gfDirectServe(plugin, f){

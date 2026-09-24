@@ -65,6 +65,71 @@ public class FileServerPlugin extends Plugin {
             java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
     private volatile String token;  // access token for the active send/gallery server (null = open)
     private volatile String receiveToken; // protects the PC -> Android upload endpoint
+    private JSObject pendingShare;        // files/text handed to us via the share sheet, until JS takes it
+
+    @Override
+    public void load() {
+        // Cold start from the share sheet: the SEND intent is the launch intent.
+        captureShare(getActivity().getIntent());
+    }
+
+    @Override
+    protected void handleOnNewIntent(Intent intent) {
+        // Warm start (launchMode=singleTask): a new share arrives while the app is alive.
+        captureShare(intent);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void captureShare(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        if (!Intent.ACTION_SEND.equals(action) && !Intent.ACTION_SEND_MULTIPLE.equals(action)) return;
+        JSArray files = new JSArray();
+        ClipData clip = intent.getClipData();
+        if (clip != null) {
+            for (int i = 0; i < clip.getItemCount(); i++) {
+                Uri u = clip.getItemAt(i).getUri();
+                if (u != null) files.put(describeUri(u));
+            }
+        }
+        if (files.length() == 0) {
+            if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+                java.util.ArrayList<Uri> list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+                if (list != null) for (Uri u : list) if (u != null) files.put(describeUri(u));
+            } else {
+                Uri u = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                if (u != null) files.put(describeUri(u));
+            }
+        }
+        JSObject share = new JSObject();
+        share.put("files", files);
+        if (files.length() == 0) {
+            CharSequence text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+            if (text == null || text.length() == 0) return;
+            share.put("text", text.toString());
+        }
+        // Consume it so an activity recreate doesn't re-send the same share.
+        intent.setAction(Intent.ACTION_MAIN);
+        synchronized (this) {
+            pendingShare = share;
+        }
+        notifyListeners("shareReceived", new JSObject());
+    }
+
+    /** Returns (and clears) the pending share: {files:[{uri,name,size,mimeType}], text?}. */
+    @PluginMethod
+    public void getSharedFiles(PluginCall call) {
+        JSObject share;
+        synchronized (this) {
+            share = pendingShare;
+            pendingShare = null;
+        }
+        if (share == null) {
+            share = new JSObject();
+            share.put("files", new JSArray());
+        }
+        call.resolve(share);
+    }
 
     @PluginMethod
     public void getIP(PluginCall call) {

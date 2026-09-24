@@ -2,6 +2,7 @@ import Capacitor
 import Darwin
 import Foundation
 import Network
+import UniformTypeIdentifiers
 
 @objc(FileServerPlugin)
 final class FileServerPlugin: CAPPlugin, CAPBridgedPlugin {
@@ -9,7 +10,8 @@ final class FileServerPlugin: CAPPlugin, CAPBridgedPlugin {
     let jsName = "FileServer"
     let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "getIP", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "startServer", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "startServer", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getSharedFiles", returnType: CAPPluginReturnPromise)
     ]
 
     private let serverQueue = DispatchQueue(label: "com.goodfile.fileserver")
@@ -18,6 +20,17 @@ final class FileServerPlugin: CAPPlugin, CAPBridgedPlugin {
     private var hostedName = "goodfile_download"
     private var hostedMimeType = "application/octet-stream"
     private var accessToken = ""
+
+    override func load() {
+        NotificationCenter.default.addObserver(forName: SharedInbox.didReceive, object: nil, queue: .main) { [weak self] _ in
+            self?.notifyListeners("shareReceived", data: [:])
+        }
+    }
+
+    /// Returns (and clears) files handed to the app via the share sheet: {files:[{uri,name,size,mimeType}]}.
+    @objc func getSharedFiles(_ call: CAPPluginCall) {
+        call.resolve(["files": SharedInbox.shared.take()])
+    }
 
     @objc func getIP(_ call: CAPPluginCall) {
         guard let ip = Self.localIPv4Address() else {
@@ -186,5 +199,51 @@ final class FileServerPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
         return nil
+    }
+}
+
+/// Files opened into the app from the share sheet. SceneDelegate fills it (possibly before the
+/// bridge exists, on a cold start); FileServerPlugin drains it when the web app asks.
+final class SharedInbox {
+    static let shared = SharedInbox()
+    static let didReceive = Notification.Name("GoodFileSharedInboxDidReceive")
+
+    private let lock = NSLock()
+    private var pending: [[String: Any]] = []
+
+    func receive(_ urls: [URL]) {
+        let files = urls.filter { $0.isFileURL }.compactMap(Self.adopt)
+        guard !files.isEmpty else { return }
+        lock.lock()
+        pending = files
+        lock.unlock()
+        NotificationCenter.default.post(name: Self.didReceive, object: nil)
+    }
+
+    func take() -> [[String: Any]] {
+        lock.lock()
+        defer { pending = []; lock.unlock() }
+        return pending
+    }
+
+    /// Move (or copy) the incoming file into tmp/shared/<uuid>/ so the send server can read it
+    /// after any security scope ends and the Documents/Inbox copy doesn't pile up.
+    private static func adopt(_ url: URL) -> [String: Any]? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory
+            .appendingPathComponent("shared", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let dest = dir.appendingPathComponent(url.lastPathComponent)
+        do {
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            do { try fm.moveItem(at: url, to: dest) } catch { try fm.copyItem(at: url, to: dest) }
+        } catch {
+            return nil
+        }
+        let size = (try? fm.attributesOfItem(atPath: dest.path)[.size] as? NSNumber)?.int64Value ?? 0
+        let mime = UTType(filenameExtension: dest.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+        return ["uri": dest.absoluteString, "name": dest.lastPathComponent, "size": size, "mimeType": mime]
     }
 }
